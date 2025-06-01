@@ -204,4 +204,8 @@ impl Player {
     pub fn can_capture_sector(&self) -> bool {
         self.fleet.command_centers > 0
     }
+    
+    pub fn get_password_hash(&self) -> Option<&String> {
+        self.password_hash.as_ref()
+    }
 } 

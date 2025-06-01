@@ -3,6 +3,7 @@ use crate::core::player::Player;
 use crate::map::sector::Sector;
 use std::fs;
 use std::io::Write;
+use std::f64;
 
 pub struct Visualizer;
 
@@ -394,7 +395,7 @@ impl Visualizer {
 </html>"#,
             player.rank, player.name,
             protected_content,
-            player.password_hash.as_ref().unwrap_or(&String::new())
+            player.get_password_hash().unwrap_or(&String::new())
         );
         
         fs::write(&filename, html)?;
@@ -700,9 +701,9 @@ impl Visualizer {
     </script>
 </body>
 </html>"#,
-            self.generate_connections_html(state),
-            self.generate_sectors_html(state),
-            self.generate_fleets_html(state),
+            Self::generate_connections_html(state),
+            Self::generate_sectors_html(state),
+            Self::generate_fleets_html(state),
             state.players[0].name,
             state.players[1].name,
             state.turn_number,
@@ -733,11 +734,11 @@ impl Visualizer {
     fn generate_connections_html(&self, state: &GameState) -> String {
         let mut connections = String::new();
         let positions = vec![
-            (200.0, 400.0),  // Earth
-            (500.0, 400.0),  // Mars
-            (800.0, 400.0),  // Asteroid Belt
-            (500.0, 600.0),  // Venus
-            (1000.0, 400.0), // Jupiter
+            (200.0_f64, 400.0_f64),  // Earth
+            (500.0_f64, 400.0_f64),  // Mars
+            (800.0_f64, 400.0_f64),  // Asteroid Belt
+            (500.0_f64, 600.0_f64),  // Venus
+            (1000.0_f64, 400.0_f64), // Jupiter
         ];
         
         // Sector connections
@@ -754,7 +755,7 @@ impl Visualizer {
             let dx = x2 - x1;
             let dy = y2 - y1;
             let length = (dx*dx + dy*dy).sqrt();
-            let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
+            let angle = dy.atan2(dx) * 180.0_f64 / std::f64::consts::PI;
             
             connections.push_str(&format!(
                 r#"<div class="connection" style="left: {}px; top: {}px; width: {}px; transform: rotate({}deg);"></div>"#,
