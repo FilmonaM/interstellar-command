@@ -1,9 +1,5 @@
 use crate::core::game::GameState;
-use crate::core::player::Player;
-use crate::map::sector::Sector;
 use std::fs;
-use std::io::Write;
-use std::f64;
 
 pub struct Visualizer;
 
@@ -731,7 +727,7 @@ impl Visualizer {
         Ok(filename.to_string())
     }
     
-    fn generate_connections_html(&self, state: &GameState) -> String {
+    fn generate_connections_html(_state: &GameState) -> String {
         let mut connections = String::new();
         let positions = vec![
             (200.0_f64, 400.0_f64),  // Earth
@@ -766,7 +762,7 @@ impl Visualizer {
         connections
     }
     
-    fn generate_sectors_html(&self, state: &GameState) -> String {
+    fn generate_sectors_html(state: &GameState) -> String {
         let mut sectors_html = String::new();
         let positions = vec![
             (200, 400),  // Earth
@@ -811,7 +807,7 @@ impl Visualizer {
         sectors_html
     }
     
-    fn generate_fleets_html(&self, state: &GameState) -> String {
+    fn generate_fleets_html(state: &GameState) -> String {
         let mut fleets_html = String::new();
         let positions = vec![
             (200, 400),  // Earth
