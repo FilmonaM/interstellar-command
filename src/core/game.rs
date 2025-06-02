@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use crate::core::player::Player;
+use crate::core::turn::{TurnManager, TurnPhase};
 use crate::map::sector::Sector;
 use crate::{ai, persistence};
 use crate::visualization::Visualizer;
@@ -31,6 +32,7 @@ pub struct GameState {
     pub current_player: u8,        // index 0 or 1
     pub game_over: bool,           // true once someone wins or quits
     pub event_log: Vec<String>,    // AI flavor text entries per turn
+    pub turn_manager: TurnManager, // NEW: Manages asynchronous turns
 }
 
 impl GameState {
@@ -40,8 +42,31 @@ impl GameState {
         println!("║{:^68}║", "A Terminal Strategy Game");
         println!("╚{}╝\n", "═".repeat(68));
         
+        // Choose map size
+        println!("Select map size:");
+        println!("1) Tactical (8 sectors) - Quick game");
+        println!("2) Strategic (17 sectors) - Full game");
+        print!("\nChoice: ");
+        io::stdout().flush().unwrap();
+        
+        let mut map_choice = String::new();
+        io::stdin().read_line(&mut map_choice).unwrap();
+        
+        let sectors = match map_choice.trim() {
+            "1" => {
+                println!("\nLoading Tactical Map...");
+                crate::map::galaxy::Galaxy::create_tactical_map()
+            }
+            _ => {
+                println!("\nLoading Strategic Map...");
+                crate::map::galaxy::Galaxy::create_default_map()
+            }
+        };
+        
+        let map_size = sectors.len();
+        
         // Prompt for player names and passwords
-        print!("Player 1, enter your name: ");
+        print!("\nPlayer 1, enter your name: ");
         io::stdout().flush().unwrap();
         let mut player1_name = String::new();
         io::stdin().read_line(&mut player1_name).unwrap();
@@ -67,35 +92,33 @@ impl GameState {
         io::stdin().read_line(&mut player2_pass).unwrap();
         let player2_pass = player2_pass.trim().to_string();
         
+        // Determine starting positions based on map size
+        let (start1, start2) = if map_size <= 8 {
+            (0, 7)  // Opposite corners for tactical map
+        } else {
+            (0, 16) // Sol System vs Deep Space Relay for strategic map
+        };
+        
         // Create players starting in different sectors
-        let mut player1 = Player::new(0, player1_name, 0);  // Player 0 starts in sector 0
-        let mut player2 = Player::new(1, player2_name, 1);  // Player 1 starts in sector 1
+        let mut player1 = Player::new(0, player1_name, start1);
+        let mut player2 = Player::new(1, player2_name, start2);
         
         // Set passwords if provided
         if !player1_pass.is_empty() {
             player1.set_password(&player1_pass);
-            println!("✓ Password set for Player 1");
+            println!("Password set for Player 1");
         }
         if !player2_pass.is_empty() {
             player2.set_password(&player2_pass);
-            println!("✓ Password set for Player 2");
+            println!("Password set for Player 2");
         }
         
         let players = [player1, player2];
         
-        // Create solar system map
-        let sectors = vec![
-            Sector::new(0, "Earth Orbit".to_string(), vec![1]),
-            Sector::new(1, "Mars Orbit".to_string(), vec![0, 2, 3]),
-            Sector::new(2, "Asteroid Belt".to_string(), vec![1, 4]),
-            Sector::new(3, "Venus Orbit".to_string(), vec![1]),
-            Sector::new(4, "Jupiter Orbit".to_string(), vec![2]),
-        ];
-        
         println!("\n{}", "─".repeat(70));
         println!("Starting new campaign...");
-        println!("- {} begins at Earth Orbit", players[0].name);
-        println!("- {} begins at Mars Orbit", players[1].name);
+        println!("- {} begins at {}", players[0].name, sectors[start1 as usize].name);
+        println!("- {} begins at {}", players[1].name, sectors[start2 as usize].name);
         println!("{}\n", "─".repeat(70));
         
         std::thread::sleep(std::time::Duration::from_secs(2));
@@ -107,7 +130,58 @@ impl GameState {
             current_player: 0,
             game_over: false,
             event_log: vec!["The solar empire awaits conquest...".to_string()],
+            turn_manager: TurnManager::new(),
         }
+    }
+    
+    pub fn calculate_sector_distance(&self, from: u8, to: u8) -> u8 {
+        if from == to {
+            return 0;
+        }
+        
+        // Simple BFS to find shortest path
+        use std::collections::{VecDeque, HashSet};
+        
+        let mut queue = VecDeque::new();
+        let mut visited = HashSet::new();
+        
+        queue.push_back((from, 0));
+        visited.insert(from);
+        
+        while let Some((current, distance)) = queue.pop_front() {
+            if current == to {
+                return distance;
+            }
+            
+            let sector = &self.sectors[current as usize];
+            for &adjacent in &sector.adjacent {
+                if !visited.contains(&adjacent) {
+                    visited.insert(adjacent);
+                    queue.push_back((adjacent, distance + 1));
+                }
+            }
+        }
+        
+        // If no path found, return maximum distance
+        u8::MAX
+    }
+    
+    pub fn run_single_turn(&mut self) -> Result<(), String> {
+        // Get current player ID
+        let player_id = self.turn_manager.current_turn.active_player;
+        
+        // Check if this player can act
+        if !self.turn_manager.can_player_act(player_id) {
+            return Err("It's not your turn!".to_string());
+        }
+        
+        // If turn hasn't started yet, start it
+        if self.turn_manager.current_turn.phase == TurnPhase::WaitingForPlayer {
+            self.turn_manager.current_turn.start();
+            self.players[player_id as usize].reset_ap();
+        }
+        
+        Ok(())
     }
     
     pub fn run_turn_loop(&mut self) {
@@ -140,18 +214,18 @@ impl GameState {
                     let password = password.trim();
                     
                     if self.players[pid].verify_password(password) {
-                        println!("│ ✓ Authentication successful!                                     │");
+                        println!("│ [OK] Authentication successful!                                  │");
                         authenticated = true;
                         break;
                     } else if attempt == 1 {
-                        println!("│ ❌ Incorrect password. One more attempt remaining.              │");
+                        println!("│ Incorrect password. One more attempt remaining.                 │");
                     }
                 }
                 
                 if !authenticated {
-                    println!("│ ❌ Authentication failed! Turn forfeited.                        │");
+                    println!("│ Authentication failed! Turn forfeited.                          │");
                     println!("└──────────────────────────────────────────────────────────────────┘");
-                    println!("\n⏳ Passing control to opponent in 3 seconds...");
+                    println!("\nPassing control to opponent in 3 seconds...");
                     self.current_player = 1 - self.current_player;
                     std::thread::sleep(std::time::Duration::from_secs(3));
                     
@@ -189,7 +263,7 @@ impl GameState {
                 println!("{}", "▬".repeat(70));
                 self.display_menu();
                 
-                print!("\n➤ Select action: ");
+                print!("\nSelect action: ");
                 io::stdout().flush().unwrap();
                 let mut choice = String::new();
                 io::stdin().read_line(&mut choice).unwrap();
@@ -209,25 +283,25 @@ impl GameState {
                     "10" => { self.open_interactive_map(); true }
                     "11" => { self.open_instructions(); true }
                     "12" => {
-                        println!("🔄 Ending turn. {} AP will be available next turn.", 
+                        println!("Ending turn. {} AP will be available next turn.", 
                             self.players[pid].ap_remaining);
                         false
                     }
                     "13" => {
                         self.game_over = true;
-                        println!("⚠️  {} has forfeited the match!", self.players[pid].name);
+                        println!("{} has forfeited the match!", self.players[pid].name);
                         self.event_log.push(format!("{} {} abandoned the campaign.", 
                             self.players[pid].rank, self.players[pid].name));
                         false
                     }
                     _ => {
-                        println!("❌ Invalid selection. Choose a number from the menu.");
+                        println!("Invalid selection. Choose a number from the menu.");
                         true
                     }
                 };
                 
                 if self.players[pid].ap_remaining == 0 && should_continue {
-                    println!("\n⚡ Action Points depleted!");
+                    println!("\nAction Points depleted!");
                     println!("Turn will end in 3 seconds...");
                     std::thread::sleep(std::time::Duration::from_secs(3));
                     break;
@@ -248,8 +322,8 @@ impl GameState {
                 let old_level = self.players[pid].level;
                 self.players[pid].check_level_up();
                 if self.players[pid].level > old_level {
-                    println!("\n🎉 PROMOTION!");
-                    println!("   {} has been promoted to Level {} - {}!", 
+                    println!("\nPROMOTION!");
+                    println!("{} has been promoted to Level {} - {}!", 
                         self.players[pid].name, 
                         self.players[pid].level,
                         self.players[pid].rank
@@ -262,14 +336,14 @@ impl GameState {
                 if !std::env::var("DISABLE_AI").is_ok() {
                     let ai_event = ai::generate_event(self);
                     if !ai_event.is_empty() {
-                        println!("\n📡 STELLAR NEWS NETWORK");
-                        println!("   \"{}\"", ai_event);
+                        println!("\nSTELLAR NEWS NETWORK");
+                        println!("\"{}\"", ai_event);
                         self.event_log.push(ai_event);
                     }
                 }
                 
                 // Save game
-                print!("\n💾 Saving campaign progress...");
+                print!("\nSaving campaign progress...");
                 io::stdout().flush().unwrap();
                 match persistence::save(self) {
                     Ok(_) => println!(" Success!"),
@@ -279,7 +353,7 @@ impl GameState {
                 self.turn_number += 1;
                 self.current_player = 1 - self.current_player;
                 
-                println!("\n{}", "─".repeat(70));
+                println!("\n{}", "-".repeat(70));
                 println!("Turn complete. Prepare for player changeover.");
                 println!("Press Enter when {} is ready...", 
                     self.players[self.current_player as usize].name);
@@ -304,7 +378,7 @@ impl GameState {
         // Show final comparison
         println!("{}", Visualizer::generate_stats_comparison(self));
         
-        println!("\n📜 CAMPAIGN CHRONICLE");
+        println!("\nCAMPAIGN CHRONICLE");
         println!("{}", "─".repeat(70));
         for (i, event) in self.event_log.iter().enumerate() {
             println!("Turn {:2}: {}", i + 1, event);
@@ -350,7 +424,7 @@ impl GameState {
             player.fleet.total_ships(), player.fleet.combat_strength()
         );
         if !player.can_capture_sector() {
-            println!("│ ⚠️  Need Command Center to capture sectors (unlocks at Level 4)  │");
+            println!("│ [!] Need Command Center to capture sectors (unlocks at Level 4) │");
         }
         println!("└──────────────────────────────────────────────────────────────────┘");
         
@@ -476,13 +550,13 @@ impl GameState {
                     if self.players[pid].can_capture_sector() {
                         self.sectors[target_id as usize].capture(pid as u8);
                         self.players[pid].gain_experience(XP_CAPTURE);
-                        println!("🏴 Sector captured! (+{} XP)", XP_CAPTURE);
-                        println!("   Your Command Center has established control.");
+                        println!("Sector captured! (+{} XP)", XP_CAPTURE);
+                        println!("Your Command Center has established control.");
                         self.event_log.push(format!("{} {} captured {}", 
                             self.players[pid].rank, self.players[pid].name, target_name));
                     } else {
-                        println!("⚠️  Cannot capture sector - no Command Center in fleet!");
-                        println!("   (Command Centers unlock at Level 4)");
+                        println!("Cannot capture sector - no Command Center in fleet!");
+                        println!("(Command Centers unlock at Level 4)");
                     }
                 }
             } else {
@@ -774,14 +848,14 @@ impl GameState {
     }
     
     fn open_interactive_map(&self) {
-        println!("🗺️  Generating interactive map...");
+        println!("Generating interactive map...");
         
         let html = self.generate_interactive_map_html();
         let filename = "interstellar_map.html";
         
         match fs::write(filename, html) {
             Ok(_) => {
-                println!("✓ Map generated successfully!");
+                println!("Map generated successfully!");
                 
                 // Try to open in default browser
                 #[cfg(target_os = "windows")]
@@ -803,9 +877,9 @@ impl GameState {
                         .spawn();
                 }
                 
-                println!("📍 Map opened in your browser (or open {} manually)", filename);
+                println!("Map opened in your browser (or open {} manually)", filename);
             }
-            Err(e) => println!("❌ Failed to generate map: {}", e),
+            Err(e) => println!("Failed to generate map: {}", e),
         }
     }
     
@@ -921,8 +995,8 @@ impl GameState {
         <p style="color: #00f;">● Player 1 Territory</p>
         <p style="color: #f00;">● Player 2 Territory</p>
         <p style="color: #0f0;">● Neutral Territory</p>
-        <p>📍 Your Location</p>
-        <p>🏭 Outpost Present</p>
+        <p>[X] Your Location</p>
+        <p>[O] Outpost Present</p>
     </div>
     
     <script>
@@ -1000,10 +1074,10 @@ impl GameState {
                 </div>"#,
                 class, x, y, info,
                 sector.name,
-                if self.players[self.current_player as usize].current_sector == i as u8 { "📍" }
-                else if enemy_here { "⚔️" }
+                if self.players[self.current_player as usize].current_sector == i as u8 { "[X]" }
+                else if enemy_here { "[!]" }
                 else { "" },
-                if sector.has_outpost { "🏭" } else { "" }
+                if sector.has_outpost { "[O]" } else { "" }
             ));
         }
         
@@ -1011,14 +1085,14 @@ impl GameState {
     }
     
     fn open_instructions(&self) {
-        println!("📖 Opening game manual...");
+        println!("Opening game manual...");
         
         let manual = self.generate_game_manual();
         let filename = "interstellar_manual.html";
         
         match fs::write(filename, manual) {
             Ok(_) => {
-                println!("✓ Manual generated successfully!");
+                println!("Manual generated successfully!");
                 
                 // Try to open in default browser
                 #[cfg(target_os = "windows")]
@@ -1040,9 +1114,9 @@ impl GameState {
                         .spawn();
                 }
                 
-                println!("📚 Manual opened in your browser (or open {} manually)", filename);
+                println!("Manual opened in your browser (or open {} manually)", filename);
             }
-            Err(e) => println!("❌ Failed to generate manual: {}", e),
+            Err(e) => println!("Failed to generate manual: {}", e),
         }
     }
     
@@ -1050,7 +1124,7 @@ impl GameState {
         format!(r#"<!DOCTYPE html>
 <html>
 <head>
-    <title>Interstellar Command - Game Manual</title>
+    <title>Interstellar Command - COMPLETE GAME MANUAL</title>
     <style>
         body {{
             background: #0a0a0a;
@@ -1101,10 +1175,10 @@ impl GameState {
     </style>
 </head>
 <body>
-    <h1>⚔️ INTERSTELLAR COMMAND - COMPLETE GAME MANUAL ⚔️</h1>
+    <h1>INTERSTELLAR COMMAND - COMPLETE GAME MANUAL</h1>
     
     <div class="section">
-        <h2>🚀 Fleet System & Military Ranks</h2>
+        <h2>Fleet System & Military Ranks</h2>
         <p>Your fleet grows with your rank! You start with a single Frigate and build your armada as you level up.</p>
         
         <h3>Ship Types</h3>
@@ -1137,7 +1211,7 @@ impl GameState {
         </table>
         
         <div class="tip">
-            <strong>⚠️ Important:</strong> You cannot capture sectors until Level 4 when you receive your first Command Center!
+            <strong>Important:</strong> You cannot capture sectors until Level 4 when you receive your first Command Center!
         </div>
         
         <h3>Fleet Growth by Level</h3>
@@ -1188,7 +1262,7 @@ impl GameState {
     </div>
     
     <div class="section">
-        <h2>🎮 Game Controls</h2>
+        <h2>Game Controls</h2>
         <h3>Action Points (AP) System</h3>
         <p>Every action costs AP. Plan your turns carefully!</p>
         <ul>
@@ -1203,7 +1277,7 @@ impl GameState {
     </div>
     
     <div class="section">
-        <h2>🗺️ Strategic Map</h2>
+        <h2>Strategic Map</h2>
         <p>The solar system consists of 5 key sectors:</p>
         <pre>
     [Earth] ---- [Mars] ---- [Asteroid Belt] ---- [Jupiter]
@@ -1214,7 +1288,7 @@ impl GameState {
     </div>
     
     <div class="section">
-        <h2>🏆 Victory Strategies</h2>
+        <h2>Victory Strategies</h2>
         <h3>Early Game (Levels 1-3)</h3>
         <ul>
             <li>Focus on gaining XP through movement and scanning</li>
@@ -1238,7 +1312,7 @@ impl GameState {
     </div>
     
     <div class="section">
-        <h2>🤖 AI Integration (Optional)</h2>
+        <h2>AI Integration (Optional)</h2>
         <h3>Using Ollama for Dynamic Events</h3>
         <p>To enable AI-generated events:</p>
         <ol>
@@ -1251,7 +1325,7 @@ impl GameState {
     </div>
     
     <div class="section">
-        <h2>⌨️ Keyboard Commands</h2>
+        <h2>Keyboard Commands</h2>
         <table>
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>1-7</td><td>Combat actions (cost AP)</td></tr>

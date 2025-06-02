@@ -8,63 +8,102 @@ impl Visualizer {
     pub fn generate_map(state: &GameState) -> String {
         let mut map = String::new();
         
-        map.push_str("\n═══════════════════════════════════════════════════════════════\n");
-        map.push_str("                    SOLAR SYSTEM MAP                           \n");
-        map.push_str("═══════════════════════════════════════════════════════════════\n\n");
+        map.push_str("╔════════════════════════════ SECTOR MAP ═══════════════════════════╗\n");
         
-        // Map layout
-        map.push_str("    [Earth]");
-        if state.sectors[0].owner.is_some() {
-            let owner = state.sectors[0].owner.unwrap();
-            map.push_str(&format!("({})", &state.players[owner as usize].name[0..1]));
+        // Simple map layout
+        if state.sectors.len() <= 5 {
+            // Original 5-sector map
+            map.push_str("║    [Earth]");
+            if let Some(owner) = state.sectors[0].owner {
+                map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+            } else {
+                map.push_str("   ");
+            }
+            
+            map.push_str(" ──── [Mars]");
+            if let Some(owner) = state.sectors[1].owner {
+                map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+            } else {
+                map.push_str("   ");
+            }
+            
+            map.push_str(" ──── [Asteroid]");
+            if state.sectors.len() > 2 {
+                if let Some(owner) = state.sectors[2].owner {
+                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+                } else {
+                    map.push_str("   ");
+                }
+            }
+            
+            if state.sectors.len() > 4 {
+                map.push_str(" ──── [Jupiter]");
+                if let Some(owner) = state.sectors[4].owner {
+                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+                } else {
+                    map.push_str("   ");
+                }
+            }
+            
+            map.push_str("   ║\n");
+            map.push_str("║                     │                                             ║\n");
+            
+            if state.sectors.len() > 3 {
+                map.push_str("║                  [Venus]");
+                if let Some(owner) = state.sectors[3].owner {
+                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+                } else {
+                    map.push_str("   ");
+                }
+                map.push_str("                                         ║");
+            }
         } else {
-            map.push_str("   ");
+            // Larger map - just list sectors
+            map.push_str("║ Sectors:                                                          ║\n");
+            for (i, sector) in state.sectors.iter().enumerate() {
+                if i % 3 == 0 {
+                    map.push_str("║ ");
+                }
+                map.push_str(&format!("[{}] {} ", i, sector.name));
+                if let Some(owner) = sector.owner {
+                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
+                }
+                if sector.has_outpost {
+                    map.push_str(" ◊");
+                }
+                if i % 3 == 2 {
+                    // Pad to end of line
+                    let remaining = 65 - (map.lines().last().unwrap().len() - 2);
+                    map.push_str(&" ".repeat(remaining));
+                    map.push_str(" ║\n");
+                } else {
+                    map.push_str("  ");
+                }
+            }
+            // Handle last row if not complete
+            if state.sectors.len() % 3 != 0 {
+                let last_line = map.lines().last().unwrap();
+                let remaining = 65 - (last_line.len() - 2);
+                map.push_str(&" ".repeat(remaining));
+                map.push_str(" ║");
+            }
         }
         
-        map.push_str(" ---- [Mars]");
-        if state.sectors[1].owner.is_some() {
-            let owner = state.sectors[1].owner.unwrap();
-            map.push_str(&format!("({})", &state.players[owner as usize].name[0..1]));
-        } else {
-            map.push_str("   ");
-        }
-        
-        map.push_str(" ---- [Asteroid]");
-        if state.sectors[2].owner.is_some() {
-            let owner = state.sectors[2].owner.unwrap();
-            map.push_str(&format!("({})", &state.players[owner as usize].name[0..1]));
-        } else {
-            map.push_str("   ");
-        }
-        
-        map.push_str(" ---- [Jupiter]");
-        if state.sectors[4].owner.is_some() {
-            let owner = state.sectors[4].owner.unwrap();
-            map.push_str(&format!("({})", &state.players[owner as usize].name[0..1]));
-        } else {
-            map.push_str("   ");
-        }
-        
-        map.push_str("\n");
-        map.push_str("                    |\n");
-        map.push_str("                 [Venus]");
-        if state.sectors[3].owner.is_some() {
-            let owner = state.sectors[3].owner.unwrap();
-            map.push_str(&format!("({})", &state.players[owner as usize].name[0..1]));
-        } else {
-            map.push_str("   ");
-        }
-        
-        map.push_str("\n\n");
-        map.push_str("Legend: (C) = Cassia, (D) = Darrow, etc.\n");
-        map.push_str("        * = Outpost present\n");
+        map.push_str("\n╠═══════════════════════════════════════════════════════════════════╣\n");
+        map.push_str("║ Legend: (Name) = Owner, ◊ = Outpost                              ║\n");
+        map.push_str("╠═══════════════════════════════════════════════════════════════════╣\n");
         
         // Fleet positions
-        map.push_str("\nFleet Positions:\n");
+        map.push_str("║ Fleet Positions:                                                  ║\n");
         for player in &state.players {
             let sector = &state.sectors[player.current_sector as usize];
-            map.push_str(&format!("  {} {} is at {}\n", player.rank, player.name, sector.name));
+            let line = format!("║   {} {} is at {}", player.rank, player.name, sector.name);
+            map.push_str(&line);
+            let padding = 68 - line.len();
+            map.push_str(&" ".repeat(padding));
+            map.push_str("║\n");
         }
+        map.push_str("╚═══════════════════════════════════════════════════════════════════╝");
         
         map
     }
@@ -74,67 +113,69 @@ impl Visualizer {
         let player = &state.players[player_id as usize];
         let mut view = String::new();
         
-        view.push_str(&format!("\n╔═══════════════════════════════════════════════════════════════╗\n"));
-        view.push_str(&format!("║          {} {}'s Command Dashboard             ║\n", player.rank, player.name));
-        view.push_str(&format!("╚═══════════════════════════════════════════════════════════════╝\n\n"));
+        view.push_str(&format!("\n╔══════════════════════════════════════════════════════════════════╗\n"));
+        view.push_str(&format!("║{:^68}║\n", format!("{} {}'s Command Dashboard", player.rank, player.name)));
+        view.push_str("╚══════════════════════════════════════════════════════════════════╝\n\n");
         
         // Stats
-        view.push_str(&format!("┌─── STATISTICS ───────────────────────────────────────────────┐\n"));
-        view.push_str(&format!("│ Level: {:2} - {:14}     Health: {:3}/{:3}            │\n", 
+        view.push_str("┌─ STATISTICS ─────────────────────────────────────────────────────┐\n");
+        view.push_str(&format!("│ Level: {} - {}     Health: {}/{}                              │\n", 
             player.level, player.rank, player.health, 100 + (player.level as i32 - 1) * 20));
-        view.push_str(&format!("│ XP: {:3}/{:3}                      AP Cap: {:2}                  │\n", 
+        view.push_str(&format!("│ XP: {}/{}     AP Cap: {}                                      │\n", 
             player.experience, player.level as u32 * 100, player.ap_cap));
-        view.push_str(&format!("│ Damage Bonus: +{:2}               Scan Range: {}               │\n", 
-            player.get_damage_bonus(), if player.get_scan_range_bonus() > 0 { "Extended" } else { "Normal  " }));
-        view.push_str(&format!("└──────────────────────────────────────────────────────────────┘\n\n"));
+        view.push_str(&format!("│ Damage Bonus: +{}     Scan Range: {}                         │\n", 
+            player.get_damage_bonus(), if player.get_scan_range_bonus() > 0 { "Extended" } else { "Normal" }));
+        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
         
         // Fleet Composition
-        view.push_str(&format!("┌─── FLEET COMPOSITION ────────────────────────────────────────┐\n"));
-        view.push_str(&format!("│ Scouts: {:2}         Frigates: {:2}      Destroyers: {:2}         │\n",
+        view.push_str("┌─ FLEET COMPOSITION ──────────────────────────────────────────────┐\n");
+        view.push_str(&format!("│ Scouts: {}     Frigates: {}     Destroyers: {}                  │\n",
             player.fleet.scouts, player.fleet.frigates, player.fleet.destroyers));
-        view.push_str(&format!("│ Command Centers: {:2}              Combat Strength: {:3}        │\n",
+        view.push_str(&format!("│ Command Centers: {}     Combat Strength: {}                    │\n",
             player.fleet.command_centers, player.fleet.combat_strength()));
-        view.push_str(&format!("│ Total Ships: {:2}                                              │\n",
-            player.fleet.total_ships()));
+        view.push_str(&format!("│ Total Ships: {}                                                 │\n", player.fleet.total_ships()));
         if !player.can_capture_sector() {
-            view.push_str(&format!("│ ⚠️  Command Center required to capture sectors (Level 4+)     │\n"));
+            view.push_str("│ Note: Command Center required to capture sectors (Level 4+)      │\n");
         }
-        view.push_str(&format!("└──────────────────────────────────────────────────────────────┘\n\n"));
+        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
         
         // Controlled Sectors
-        view.push_str(&format!("┌─── CONTROLLED SECTORS ───────────────────────────────────────┐\n"));
+        view.push_str("┌─ CONTROLLED SECTORS ─────────────────────────────────────────────┐\n");
         let mut has_sectors = false;
         for sector in &state.sectors {
             if sector.owner == Some(player_id) {
                 has_sectors = true;
-                view.push_str(&format!("│ • {:20} ", sector.name));
-                if sector.has_outpost {
-                    view.push_str("[OUTPOST] ");
+                let line = if sector.has_outpost {
+                    format!("│ • {} [OUTPOST]", sector.name)
                 } else {
-                    view.push_str("          ");
-                }
-                view.push_str("                           │\n");
+                    format!("│ • {}", sector.name)
+                };
+                view.push_str(&line);
+                view.push_str(&" ".repeat(68 - line.len()));
+                view.push_str("│\n");
             }
         }
         if !has_sectors {
-            view.push_str("│ No sectors under control                                     │\n");
+            view.push_str("│ No sectors under control                                         │\n");
         }
-        view.push_str(&format!("└──────────────────────────────────────────────────────────────┘\n\n"));
+        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
         
         // Abilities
-        view.push_str(&format!("┌─── ABILITIES ────────────────────────────────────────────────┐\n"));
-        view.push_str(&format!("│ • Move Fleet (5 AP)          • Attack ({} damage, 8 AP)      │\n", 10 + player.get_damage_bonus()));
-        view.push_str(&format!("│ • Scan Sector (3 AP)         • Build Outpost (10 AP)         │\n"));
+        view.push_str("┌─ ABILITIES ──────────────────────────────────────────────────────┐\n");
+        view.push_str(&format!("│ • Move Fleet (5 AP)                                              │\n"));
+        view.push_str(&format!("│ • Attack ({} damage, 8 AP)                                      │\n", 10 + player.get_damage_bonus()));
+        view.push_str(&format!("│ • Scan Sector (3 AP)                                             │\n"));
+        view.push_str(&format!("│ • Build Outpost (10 AP)                                          │\n"));
         if player.level >= 3 {
-            view.push_str(&format!("│ • Reinforce (15 AP) - Heal 20 HP                             │\n"));
+            view.push_str(&format!("│ • Reinforce (15 AP) - Heal 20 HP                                │\n"));
         }
         if player.level >= 5 {
-            view.push_str(&format!("│ • Sabotage (12 AP) - Destroy enemy outpost                   │\n"));
+            view.push_str(&format!("│ • Sabotage (12 AP) - Destroy enemy outpost                      │\n"));
         }
         if player.level >= 7 {
-            view.push_str(&format!("│ • Orbital Strike (20 AP) - 30 damage anywhere                │\n"));
+            view.push_str(&format!("│ • Orbital Strike (20 AP) - 30 damage anywhere                   │\n"));
         }
-        view.push_str(&format!("└──────────────────────────────────────────────────────────────┘\n"));
+        view.push_str("└──────────────────────────────────────────────────────────────────┘\n");
         
         view
     }
@@ -166,10 +207,10 @@ impl Visualizer {
         <div class="section">
             <h2>Fleet Composition</h2>
             <div class="fleet">
-                <div>⚡ Scouts: {}</div>
-                <div>⚔️ Frigates: {}</div>
-                <div>💥 Destroyers: {}</div>
-                <div>🏛️ Command Centers: {}</div>
+                <div>Scouts: {}</div>
+                <div>Frigates: {}</div>
+                <div>Destroyers: {}</div>
+                <div>Command Centers: {}</div>
                 <div><strong>Total Ships: {}</strong></div>
                 <div><strong>Combat Strength: {}</strong></div>
             </div>
@@ -322,13 +363,13 @@ impl Visualizer {
 <body>
     <div class="container">
         <div id="passwordForm">
-            <h1>🔒 Classified Command Interface</h1>
+            <h1>Classified Command Interface</h1>
             <p>This view is password protected</p>
             <p>Enter your player password to access:</p>
             <br>
             <input type="password" id="passwordInput" placeholder="Enter password">
             <button id="submitButton" onclick="checkPassword()">Access</button>
-            <div id="errorMessage">❌ Invalid password</div>
+            <div id="errorMessage">Invalid password</div>
         </div>
         
         <div id="content">
@@ -402,44 +443,45 @@ impl Visualizer {
     pub fn generate_stats_comparison(state: &GameState) -> String {
         let mut chart = String::new();
         
-        chart.push_str("\n╔═══════════════════════════════════════════════════════════════╗\n");
-        chart.push_str("║                    PLAYER COMPARISON                          ║\n");
-        chart.push_str("╚═══════════════════════════════════════════════════════════════╝\n\n");
-        
-        chart.push_str("                    Player 1         vs         Player 2\n");
-        chart.push_str("─────────────────────────────────────────────────────────────────\n");
+        chart.push_str("\n╔══════════════════════ PLAYER COMPARISON ═══════════════════════╗\n");
+        chart.push_str("║                    Player 1         vs         Player 2         ║\n");
+        chart.push_str("╠═════════════════════════════════════════════════════════════════╣\n");
         
         let p1 = &state.players[0];
         let p2 = &state.players[1];
         
-        chart.push_str(&format!("Name:           {:>15}             {:>15}\n", p1.name, p2.name));
-        chart.push_str(&format!("Rank:           {:>15}             {:>15}\n", p1.rank, p2.rank));
-        chart.push_str(&format!("Level:          {:>15}             {:>15}\n", p1.level, p2.level));
-        chart.push_str(&format!("Health:         {:>15}             {:>15}\n", p1.health, p2.health));
-        chart.push_str(&format!("AP Cap:         {:>15}             {:>15}\n", p1.ap_cap, p2.ap_cap));
-        chart.push_str(&format!("Damage:         {:>15}             {:>15}\n", 
+        chart.push_str(&format!("║ Name:          {:>15}     vs     {:<15} ║\n", p1.name, p2.name));
+        chart.push_str(&format!("║ Rank:          {:>15}     vs     {:<15} ║\n", p1.rank, p2.rank));
+        chart.push_str(&format!("║ Level:         {:>15}     vs     {:<15} ║\n", p1.level, p2.level));
+        chart.push_str(&format!("║ Health:        {:>15}     vs     {:<15} ║\n", p1.health, p2.health));
+        chart.push_str(&format!("║ AP Cap:        {:>15}     vs     {:<15} ║\n", p1.ap_cap, p2.ap_cap));
+        chart.push_str(&format!("║ Damage:        {:>15}     vs     {:<15} ║\n", 
             format!("+{}", p1.get_damage_bonus()), format!("+{}", p2.get_damage_bonus())));
         
         // Sector control
         let p1_sectors = state.sectors.iter().filter(|s| s.owner == Some(0)).count();
         let p2_sectors = state.sectors.iter().filter(|s| s.owner == Some(1)).count();
-        chart.push_str(&format!("Sectors:        {:>15}             {:>15}\n", p1_sectors, p2_sectors));
+        chart.push_str(&format!("║ Sectors:       {:>15}     vs     {:<15} ║\n", p1_sectors, p2_sectors));
+        
+        chart.push_str("╠═════════════════════════════════════════════════════════════════╣\n");
         
         // Health bars
-        chart.push_str("\nHealth Bars:\n");
-        chart.push_str(&format!("{:15} [", p1.name));
+        chart.push_str("║ Health Bars:                                                    ║\n");
+        chart.push_str(&format!("║ {:14} [", p1.name));
         let p1_bar_len = (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 20.0) as usize;
         for i in 0..20 {
             if i < p1_bar_len { chart.push('█'); } else { chart.push('░'); }
         }
-        chart.push_str(&format!("] {}%\n", (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 100.0) as i32));
+        chart.push_str(&format!("] {}%                           ║\n", (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 100.0) as i32));
         
-        chart.push_str(&format!("{:15} [", p2.name));
+        chart.push_str(&format!("║ {:14} [", p2.name));
         let p2_bar_len = (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 20.0) as usize;
         for i in 0..20 {
             if i < p2_bar_len { chart.push('█'); } else { chart.push('░'); }
         }
-        chart.push_str(&format!("] {}%\n", (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 100.0) as i32));
+        chart.push_str(&format!("] {}%                           ║\n", (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 100.0) as i32));
+        
+        chart.push_str("╚═════════════════════════════════════════════════════════════════╝\n");
         
         chart
     }
@@ -635,8 +677,8 @@ impl Visualizer {
             <div style="color: #ff0000">● {} Territory</div>
             <div style="color: #0ff">● Neutral Space</div>
             <div style="margin-top: 10px">
-                <div>⭕ Fleet Position</div>
-                <div>🏭 Outpost Present</div>
+                <div>[o] Fleet Position</div>
+                <div>[#] Outpost Present</div>
             </div>
         </div>
         
@@ -785,7 +827,7 @@ impl Visualizer {
                 None => "Unclaimed",
             };
             
-            let outpost_icon = if sector.has_outpost { "🏭" } else { "" };
+            let outpost_icon = if sector.has_outpost { "[#]" } else { "" };
             
             let tooltip = format!(
                 "Sector: {}<br>Owner: {}<br>Outpost: {}",

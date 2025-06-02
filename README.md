@@ -1,109 +1,59 @@
 # Interstellar Command
 
-A terminal-based strategy game with point-based mechanics and RPG progression inspired by Red Rising.
+Asynchronous turn-based strategy game for terminal. Play over SSH at your own pace.
 
-## Overview
+## Quick Start
 
-Two players compete for control of the solar system using Action Points (AP) and military ranks. Features include password-protected turns, multiple visualization options, and optional AI-generated events.
+```bash
+# Build
+cargo build --release
+
+# New game
+./play.sh new
+
+# Play turn
+./play.sh
+
+# Check status
+./play.sh status
+```
 
 ## Features
 
-- Turn-based strategy with 25 AP per turn
-- 10-level progression system with military ranks
-- Password authentication for secure gameplay
-- ASCII and HTML visualization exports
-- Fleet-based combat with multiple ship types
-- Sector control and outpost building
+- **Asynchronous multiplayer** - Take turns whenever via SSH
+- **Action points** - 25 AP per turn for strategic choices  
+- **Fleet combat** - Multiple ship types with different strengths
+- **Territory control** - Capture sectors, build outposts
+- **Leveling** - 10 ranks from Legionnaire to Archsovereign
 
-## Requirements
+## How to Play
 
-- Rust 1.70+
-- Terminal with UTF-8 support
+1. Start game: `./play.sh new`
+2. Set player names and passwords
+3. Choose map size (8 or 17 sectors)
+4. Players take turns by running `./play.sh`
 
-## Installation
+### Commands
 
-```bash
-git clone <repository>
-cd interstellar-command
-cargo build --release
-cargo run
-```
-
-## Gameplay
-
-### Actions and AP Costs
-
-| Action | AP Cost | Description |
-|--------|---------|-------------|
-| Move Fleet | 5 | Move to adjacent sector |
-| Attack Enemy | 8 | Deal damage based on level |
-| Scan Sector | 3 | Reveal sector information |
-| Build Outpost | 10 | Fortify controlled sector |
-| Reinforce | 15 | Heal 20 HP (Level 3+) |
-| Sabotage | 12 | Destroy enemy outpost (Level 5+) |
-| Orbital Strike | 20 | Ranged attack (Level 7+) |
-
-### Progression System
-
-Players advance through 10 military ranks from Legionnaire to Archsovereign. Each level provides:
-- Increased AP capacity
-- Additional ships for your fleet
-- New abilities at levels 3, 5, and 7
-- Combat damage bonuses
-
-### Fleet Composition
-
-Ships provide combat strength and special capabilities:
-- **Scouts**: Reconnaissance and extended scan range
-- **Frigates**: Standard combat vessels
-- **Destroyers**: Heavy firepower
-- **Command Centers**: Required to capture sectors (unlocked at Level 4)
+- `move <sector>` - Move fleet (5 AP)
+- `attack` - Attack enemy (8 AP)
+- `scan <sector>` - Reveal info (3 AP)
+- `build` - Build outpost (10 AP)
+- `reinforce` - Heal fleet (15 AP, level 3+)
+- `end` - End turn
+- `help` - Show commands
 
 ## Architecture
 
 ```
 src/
-├── core/           # Game state and player logic
-├── map/            # Sector management
-├── persistence/    # Save/load functionality
-├── ai/             # Event generation
-├── visualization/  # Display and export features
-└── database/       # Storage abstraction
+├── core/          # Game logic
+├── map/           # Sector maps
+└── persistence.rs # Save/load
 ```
 
-## Optional Features
-
-### AI Events
-The game includes atmospheric flavor text between turns. To disable:
-```bash
-DISABLE_AI=1 cargo run
-```
-
-### Visualization Exports
-- ASCII map display in terminal
-- HTML exports with password protection
-- Interactive browser-based map
-
-## Building
-
-```bash
-# Development
-cargo build
-
-# Release
-cargo build --release
-
-# Cross-compilation examples
-cargo build --release --target armv7-unknown-linux-gnueabihf  # Raspberry Pi 32-bit
-cargo build --release --target aarch64-unknown-linux-gnu      # Raspberry Pi 64-bit
-```
-
-## Documentation
-
-- [Quick Start Guide](QUICKSTART.md) - Basic gameplay instructions
-- [Visualization Guide](VISUALIZATION_GUIDE.md) - Display options
-- [Implementation Status](IMPLEMENTATION_STATUS.md) - Technical details
+Built with Rust. Uses JSON for saves. SHA256 for passwords.
 
 ## License
 
-Open source - modify and extend as needed.
+MIT

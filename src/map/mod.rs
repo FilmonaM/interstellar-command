@@ -1,1 +1,2 @@
-pub mod sector; 
+pub mod sector;
+pub mod galaxy; 
