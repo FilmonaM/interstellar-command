@@ -73,8 +73,12 @@ impl Visualizer {
                 }
                 if i % 3 == 2 {
                     // Pad to end of line
-                    let remaining = 65 - (map.lines().last().unwrap().len() - 2);
-                    map.push_str(&" ".repeat(remaining));
+                    let last_line = map.lines().last().unwrap_or("");
+                    let line_len = last_line.len();
+                    if line_len >= 2 && line_len < 67 {
+                        let remaining = 67 - line_len;
+                        map.push_str(&" ".repeat(remaining));
+                    }
                     map.push_str(" ║\n");
                 } else {
                     map.push_str("  ");
@@ -82,9 +86,12 @@ impl Visualizer {
             }
             // Handle last row if not complete
             if state.sectors.len() % 3 != 0 {
-                let last_line = map.lines().last().unwrap();
-                let remaining = 65 - (last_line.len() - 2);
-                map.push_str(&" ".repeat(remaining));
+                let last_line = map.lines().last().unwrap_or("");
+                let line_len = last_line.len();
+                if line_len >= 2 && line_len < 67 {
+                    let remaining = 67 - line_len;
+                    map.push_str(&" ".repeat(remaining));
+                }
                 map.push_str(" ║");
             }
         }

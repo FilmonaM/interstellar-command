@@ -23,20 +23,12 @@ fn start_new_game() {
     println!("║{:^68}║", "NEW CAMPAIGN");
     println!("╚{}╝\n", "═".repeat(68));
     
-    // Prompt for player names and passwords
+    // Just get player names first
     print!("Player 1 name: ");
     io::stdout().flush().unwrap();
     let mut player1_name = String::new();
     io::stdin().read_line(&mut player1_name).unwrap();
     let player1_name = player1_name.trim().to_string();
-    
-    print!("Player 1 password: ");
-    io::stdout().flush().unwrap();
-    let mut player1_pass = String::new();
-    io::stdin().read_line(&mut player1_pass).unwrap();
-    let player1_pass = player1_pass.trim().to_string();
-    
-    println!();
     
     print!("Player 2 name: ");
     io::stdout().flush().unwrap();
@@ -44,29 +36,57 @@ fn start_new_game() {
     io::stdin().read_line(&mut player2_name).unwrap();
     let player2_name = player2_name.trim().to_string();
     
-    print!("Player 2 password: ");
+    // Create new game state without passwords
+    let mut state = GameState::new_with_names(player1_name, player2_name);
+    
+    // Now set passwords securely
+    println!("\n┌─ PASSWORD SETUP ─────────────────────────────────────────────────┐");
+    println!("│ Passwords will be hidden as you type.                           │");
+    println!("│ Press Enter for no password (not recommended).                  │");
+    println!("└──────────────────────────────────────────────────────────────────┘\n");
+    
+    // Player 1 password
+    print!("{}, set your password: ", state.players[0].name);
     io::stdout().flush().unwrap();
-    let mut player2_pass = String::new();
-    io::stdin().read_line(&mut player2_pass).unwrap();
-    let player2_pass = player2_pass.trim().to_string();
+    let player1_pass = read_password_hidden();
+    if !player1_pass.is_empty() {
+        state.players[0].set_password(&player1_pass);
+        println!("Password set.");
+    } else {
+        println!("No password set (not recommended).");
+    }
     
-    // Create new game state
-    let mut state = GameState::new();
+    // Player 2 password
+    print!("{}, set your password: ", state.players[1].name);
+    io::stdout().flush().unwrap();
+    let player2_pass = read_password_hidden();
+    if !player2_pass.is_empty() {
+        state.players[1].set_password(&player2_pass);
+        println!("Password set.");
+    } else {
+        println!("No password set (not recommended).");
+    }
     
-    // Set player names and passwords
-    state.players[0].name = player1_name.clone();
-    state.players[0].set_password(&player1_pass);
-    
-    state.players[1].name = player2_name.clone();
-    state.players[1].set_password(&player2_pass);
-    
-    println!("\nStarting campaign...");
+    println!("\n{}", "─".repeat(70));
+    println!("Starting campaign...");
     println!("{} starts at {}", state.players[0].name, state.sectors[state.players[0].current_sector as usize].name);
     println!("{} starts at {}", state.players[1].name, state.sectors[state.players[1].current_sector as usize].name);
+    println!("{}", "─".repeat(70));
     
     // Save initial state
     match persistence::save(&state) {
-        Ok(_) => println!("\nGame saved. Players can now take turns."),
+        Ok(_) => {
+            println!("\n╔══════════════════════════════════════════════════════════════════╗");
+            println!("║                      GAME SAVED SUCCESSFULLY                      ║");
+            println!("╠══════════════════════════════════════════════════════════════════╣");
+            println!("║ Players can now take turns asynchronously.                       ║");
+            println!("║                                                                   ║");
+            println!("║ To play your turn:                                               ║");
+            println!("║   ./play.sh                                                       ║");
+            println!("║                                                                   ║");
+            println!("║ Each player logs in separately to take their turn.               ║");
+            println!("╚══════════════════════════════════════════════════════════════════╝");
+        }
         Err(e) => {
             eprintln!("Failed to save: {}", e);
             return;
@@ -114,11 +134,9 @@ fn resume_game() {
     print!("Password for {}: ", active_player.name);
     io::stdout().flush().unwrap();
     
-    let mut password = String::new();
-    io::stdin().read_line(&mut password).unwrap();
-    let password = password.trim();
+    let password = read_password_hidden();
     
-    if !state.players[active_player_id as usize].verify_password(password) {
+    if !state.players[active_player_id as usize].verify_password(&password) {
         println!("Wrong password.");
         return;
     }
@@ -384,5 +402,17 @@ fn clear_screen() {
         let _ = std::process::Command::new("cmd").args(&["/C", "cls"]).status();
     } else {
         let _ = std::process::Command::new("clear").status();
+    }
+}
+
+fn read_password_hidden() -> String {
+    match rpassword::read_password() {
+        Ok(password) => password,
+        Err(_) => {
+            // Fallback to regular input if rpassword fails
+            let mut password = String::new();
+            io::stdin().read_line(&mut password).unwrap();
+            password.trim().to_string()
+        }
     }
 } 

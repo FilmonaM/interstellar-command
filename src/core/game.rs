@@ -74,9 +74,10 @@ impl GameState {
         
         print!("Player 1, set a password (or press Enter for none): ");
         io::stdout().flush().unwrap();
-        let mut player1_pass = String::new();
-        io::stdin().read_line(&mut player1_pass).unwrap();
-        let player1_pass = player1_pass.trim().to_string();
+        let player1_pass = match rpassword::read_password() {
+            Ok(pass) => pass,
+            Err(_) => String::new(),
+        };
         
         println!(); // Space between players
         
@@ -88,9 +89,10 @@ impl GameState {
         
         print!("Player 2, set a password (or press Enter for none): ");
         io::stdout().flush().unwrap();
-        let mut player2_pass = String::new();
-        io::stdin().read_line(&mut player2_pass).unwrap();
-        let player2_pass = player2_pass.trim().to_string();
+        let player2_pass = match rpassword::read_password() {
+            Ok(pass) => pass,
+            Err(_) => String::new(),
+        };
         
         // Determine starting positions based on map size
         let (start1, start2) = if map_size <= 8 {
@@ -122,6 +124,59 @@ impl GameState {
         println!("{}\n", "─".repeat(70));
         
         std::thread::sleep(std::time::Duration::from_secs(2));
+        
+        GameState {
+            players,
+            sectors,
+            turn_number: 1,
+            current_player: 0,
+            game_over: false,
+            event_log: vec!["The solar empire awaits conquest...".to_string()],
+            turn_manager: TurnManager::new(),
+        }
+    }
+    
+    pub fn new_with_names(player1_name: String, player2_name: String) -> Self {
+        println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
+        println!("║{:^68}║", "INTERSTELLAR COMMAND");
+        println!("║{:^68}║", "A Terminal Strategy Game");
+        println!("╚{}╝\n", "═".repeat(68));
+        
+        // Choose map size
+        println!("Select map size:");
+        println!("1) Tactical (8 sectors) - Quick game");
+        println!("2) Strategic (17 sectors) - Full game");
+        print!("\nChoice: ");
+        io::stdout().flush().unwrap();
+        
+        let mut map_choice = String::new();
+        io::stdin().read_line(&mut map_choice).unwrap();
+        
+        let sectors = match map_choice.trim() {
+            "1" => {
+                println!("\nLoading Tactical Map...");
+                crate::map::galaxy::Galaxy::create_tactical_map()
+            }
+            _ => {
+                println!("\nLoading Strategic Map...");
+                crate::map::galaxy::Galaxy::create_default_map()
+            }
+        };
+        
+        let map_size = sectors.len();
+        
+        // Determine starting positions based on map size
+        let (start1, start2) = if map_size <= 8 {
+            (0, 7)  // Opposite corners for tactical map
+        } else {
+            (0, 16) // Sol System vs Deep Space Relay for strategic map
+        };
+        
+        // Create players starting in different sectors
+        let player1 = Player::new(0, player1_name, start1);
+        let player2 = Player::new(1, player2_name, start2);
+        
+        let players = [player1, player2];
         
         GameState {
             players,
@@ -209,11 +264,15 @@ impl GameState {
                 for attempt in 1..=2 {
                     print!("│ {}, enter password (attempt {}/2): ", self.players[pid].name, attempt);
                     io::stdout().flush().unwrap();
-                    let mut password = String::new();
-                    io::stdin().read_line(&mut password).unwrap();
-                    let password = password.trim();
+                    let password = match rpassword::read_password() {
+                        Ok(pass) => pass,
+                        Err(_) => {
+                            println!("│ Error reading password. Try again.                               │");
+                            continue;
+                        }
+                    };
                     
-                    if self.players[pid].verify_password(password) {
+                    if self.players[pid].verify_password(&password) {
                         println!("│ [OK] Authentication successful!                                  │");
                         authenticated = true;
                         break;
