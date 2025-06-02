@@ -8,109 +8,115 @@ impl Visualizer {
     pub fn generate_map(state: &GameState) -> String {
         let mut map = String::new();
         
-        map.push_str("╔════════════════════════════ SECTOR MAP ═══════════════════════════╗\n");
+        // Simpler, cleaner map header
+        map.push_str("\n+---------------------------- SECTOR MAP ----------------------------+\n");
         
-        // Simple map layout
         if state.sectors.len() <= 5 {
-            // Original 5-sector map
-            map.push_str("║    [Earth]");
-            if let Some(owner) = state.sectors[0].owner {
-                map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-            } else {
-                map.push_str("   ");
-            }
-            
-            map.push_str(" ──── [Mars]");
-            if let Some(owner) = state.sectors[1].owner {
-                map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-            } else {
-                map.push_str("   ");
-            }
-            
-            map.push_str(" ──── [Asteroid]");
-            if state.sectors.len() > 2 {
-                if let Some(owner) = state.sectors[2].owner {
-                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-                } else {
-                    map.push_str("   ");
-                }
-            }
-            
-            if state.sectors.len() > 4 {
-                map.push_str(" ──── [Jupiter]");
-                if let Some(owner) = state.sectors[4].owner {
-                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-                } else {
-                    map.push_str("   ");
-                }
-            }
-            
-            map.push_str("   ║\n");
-            map.push_str("║                     │                                             ║\n");
-            
-            if state.sectors.len() > 3 {
-                map.push_str("║                  [Venus]");
-                if let Some(owner) = state.sectors[3].owner {
-                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-                } else {
-                    map.push_str("   ");
-                }
-                map.push_str("                                         ║");
-            }
+            // Tactical 5-sector map - clean visual layout
+            map.push_str("|                                                                    |\n");
+            map.push_str("|     [0] Earth ---- [1] Mars ---- [2] Asteroid ---- [4] Jupiter    |\n");
+            map.push_str("|                        |                                           |\n");
+            map.push_str("|                    [3] Venus                                       |\n");
+            map.push_str("|                                                                    |\n");
+        } else if state.sectors.len() <= 8 {
+            // Tactical 8-sector map
+            map.push_str("|                                                                    |\n");
+            map.push_str("|  [0] Sol ------ [1] Inner ------ [2] Mars ------ [3] Belt        |\n");
+            map.push_str("|     |              |                 |               |             |\n");
+            map.push_str("|  [4] Luna      [5] Venus         [6] Phobos     [7] Ceres        |\n");
+            map.push_str("|                                                                    |\n");
         } else {
-            // Larger map - just list sectors
-            map.push_str("║ Sectors:                                                          ║\n");
-            for (i, sector) in state.sectors.iter().enumerate() {
-                if i % 3 == 0 {
-                    map.push_str("║ ");
-                }
-                map.push_str(&format!("[{}] {} ", i, sector.name));
-                if let Some(owner) = sector.owner {
-                    map.push_str(&format!("({})", &state.players[owner as usize].name.chars().next().unwrap()));
-                }
-                if sector.has_outpost {
-                    map.push_str(" ◊");
-                }
-                if i % 3 == 2 {
-                    // Pad to end of line
-                    let last_line = map.lines().last().unwrap_or("");
-                    let line_len = last_line.len();
-                    if line_len >= 2 && line_len < 67 {
-                        let remaining = 67 - line_len;
-                        map.push_str(&" ".repeat(remaining));
-                    }
-                    map.push_str(" ║\n");
-                } else {
-                    map.push_str("  ");
-                }
-            }
-            // Handle last row if not complete
-            if state.sectors.len() % 3 != 0 {
-                let last_line = map.lines().last().unwrap_or("");
-                let line_len = last_line.len();
-                if line_len >= 2 && line_len < 67 {
-                    let remaining = 67 - line_len;
-                    map.push_str(&" ".repeat(remaining));
-                }
-                map.push_str(" ║");
-            }
+            // Strategic map - grid layout
+            map.push_str("|  INNER SYSTEM:                    |  OUTER SYSTEM:                 |\n");
+            map.push_str("|  [0] Sol         [4] Luna         |  [8] Jupiter    [12] Callisto  |\n");
+            map.push_str("|  [1] Inner       [5] Venus        |  [9] Io         [13] Ganymede  |\n");
+            map.push_str("|  [2] Mars        [6] Phobos       |  [10] Europa    [14] Saturn    |\n");
+            map.push_str("|  [3] Belt        [7] Ceres        |  [11] Belt II   [15] Titan     |\n");
+            map.push_str("|                                   |  [16] Deep Space                |\n");
         }
         
-        map.push_str("\n╠═══════════════════════════════════════════════════════════════════╣\n");
-        map.push_str("║ Legend: (Name) = Owner, ◊ = Outpost                              ║\n");
-        map.push_str("╠═══════════════════════════════════════════════════════════════════╣\n");
+        map.push_str("+--------------------------------------------------------------------+\n");
+        
+        // Sector ownership status
+        map.push_str("| SECTOR CONTROL:                                                    |\n");
+        
+        let mut control_lines = Vec::new();
+        let mut current_line = String::from("| ");
+        
+        for (i, sector) in state.sectors.iter().enumerate() {
+            let mut status = format!("[{}] ", i);
+            
+            // Add ownership indicator
+            match sector.owner {
+                Some(0) => status.push_str(&format!("P1")),
+                Some(1) => status.push_str(&format!("P2")),
+                None => status.push_str("--"),
+                Some(_) => status.push_str("??"), // Handle any other player IDs
+            }
+            
+            // Add outpost indicator
+            if sector.has_outpost {
+                status.push_str("*");
+            } else {
+                status.push_str(" ");
+            }
+            
+            // Check if adding this would exceed line length
+            if current_line.len() + status.len() + 2 > 66 {
+                // Pad current line and save it
+                while current_line.len() < 67 {
+                    current_line.push(' ');
+                }
+                current_line.push('|');
+                control_lines.push(current_line);
+                current_line = String::from("| ");
+            }
+            
+            current_line.push_str(&status);
+            current_line.push_str("  ");
+        }
+        
+        // Add last line
+        if current_line.len() > 2 {
+            while current_line.len() < 67 {
+                current_line.push(' ');
+            }
+            current_line.push('|');
+            control_lines.push(current_line);
+        }
+        
+        for line in control_lines {
+            map.push_str(&line);
+            map.push('\n');
+        }
+        
+        map.push_str("+--------------------------------------------------------------------+\n");
         
         // Fleet positions
-        map.push_str("║ Fleet Positions:                                                  ║\n");
+        map.push_str("| FLEET POSITIONS:                                                   |\n");
         for player in &state.players {
-            let sector = &state.sectors[player.current_sector as usize];
-            let line = format!("║   {} {} is at {}", player.rank, player.name, sector.name);
-            map.push_str(&line);
-            let padding = 68 - line.len();
-            map.push_str(&" ".repeat(padding));
-            map.push_str("║\n");
+            let sector_name = &state.sectors[player.current_sector as usize].name;
+            let fleet_line = format!("| {} {} at [{}] {} - {} ships", 
+                player.rank, 
+                player.name,
+                player.current_sector,
+                sector_name,
+                player.fleet.total_ships()
+            );
+            
+            // Pad to consistent width
+            let mut padded_line = fleet_line;
+            while padded_line.len() < 67 {
+                padded_line.push(' ');
+            }
+            padded_line.push('|');
+            map.push_str(&padded_line);
+            map.push('\n');
         }
-        map.push_str("╚═══════════════════════════════════════════════════════════════════╝");
+        
+        map.push_str("+--------------------------------------------------------------------+\n");
+        map.push_str("| Legend: P1/P2 = Owner, * = Outpost, -- = Neutral                  |\n");
+        map.push_str("+--------------------------------------------------------------------+\n");
         
         map
     }
@@ -120,69 +126,66 @@ impl Visualizer {
         let player = &state.players[player_id as usize];
         let mut view = String::new();
         
-        view.push_str(&format!("\n╔══════════════════════════════════════════════════════════════════╗\n"));
-        view.push_str(&format!("║{:^68}║\n", format!("{} {}'s Command Dashboard", player.rank, player.name)));
-        view.push_str("╚══════════════════════════════════════════════════════════════════╝\n\n");
+        view.push_str("\n");
+        view.push_str(&format!("+{:-^68}+\n", format!(" {} {}'s Command Dashboard ", player.rank, player.name)));
+        view.push_str("\n");
         
         // Stats
-        view.push_str("┌─ STATISTICS ─────────────────────────────────────────────────────┐\n");
-        view.push_str(&format!("│ Level: {} - {}     Health: {}/{}                              │\n", 
+        view.push_str("STATISTICS:\n");
+        view.push_str(&format!("  Level: {} - {}     Health: {}/{}\n", 
             player.level, player.rank, player.health, 100 + (player.level as i32 - 1) * 20));
-        view.push_str(&format!("│ XP: {}/{}     AP Cap: {}                                      │\n", 
+        view.push_str(&format!("  XP: {}/{}     AP Cap: {}\n", 
             player.experience, player.level as u32 * 100, player.ap_cap));
-        view.push_str(&format!("│ Damage Bonus: +{}     Scan Range: {}                         │\n", 
+        view.push_str(&format!("  Damage Bonus: +{}     Scan Range: {}\n", 
             player.get_damage_bonus(), if player.get_scan_range_bonus() > 0 { "Extended" } else { "Normal" }));
-        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
+        view.push_str("\n");
         
         // Fleet Composition
-        view.push_str("┌─ FLEET COMPOSITION ──────────────────────────────────────────────┐\n");
-        view.push_str(&format!("│ Scouts: {}     Frigates: {}     Destroyers: {}                  │\n",
+        view.push_str("FLEET COMPOSITION:\n");
+        view.push_str(&format!("  Scouts: {}     Frigates: {}     Destroyers: {}\n",
             player.fleet.scouts, player.fleet.frigates, player.fleet.destroyers));
-        view.push_str(&format!("│ Command Centers: {}     Combat Strength: {}                    │\n",
+        view.push_str(&format!("  Command Centers: {}     Combat Strength: {}\n",
             player.fleet.command_centers, player.fleet.combat_strength()));
-        view.push_str(&format!("│ Total Ships: {}                                                 │\n", player.fleet.total_ships()));
+        view.push_str(&format!("  Total Ships: {}\n", player.fleet.total_ships()));
         if !player.can_capture_sector() {
-            view.push_str("│ Note: Command Center required to capture sectors (Level 4+)      │\n");
+            view.push_str("  Note: Command Center required to capture sectors (Level 4+)\n");
         }
-        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
+        view.push_str("\n");
         
         // Controlled Sectors
-        view.push_str("┌─ CONTROLLED SECTORS ─────────────────────────────────────────────┐\n");
+        view.push_str("CONTROLLED SECTORS:\n");
         let mut has_sectors = false;
         for sector in &state.sectors {
             if sector.owner == Some(player_id) {
                 has_sectors = true;
-                let line = if sector.has_outpost {
-                    format!("│ • {} [OUTPOST]", sector.name)
+                if sector.has_outpost {
+                    view.push_str(&format!("  * {} [OUTPOST]\n", sector.name));
                 } else {
-                    format!("│ • {}", sector.name)
-                };
-                view.push_str(&line);
-                view.push_str(&" ".repeat(68 - line.len()));
-                view.push_str("│\n");
+                    view.push_str(&format!("  * {}\n", sector.name));
+                }
             }
         }
         if !has_sectors {
-            view.push_str("│ No sectors under control                                         │\n");
+            view.push_str("  No sectors under control\n");
         }
-        view.push_str("└──────────────────────────────────────────────────────────────────┘\n\n");
+        view.push_str("\n");
         
         // Abilities
-        view.push_str("┌─ ABILITIES ──────────────────────────────────────────────────────┐\n");
-        view.push_str(&format!("│ • Move Fleet (5 AP)                                              │\n"));
-        view.push_str(&format!("│ • Attack ({} damage, 8 AP)                                      │\n", 10 + player.get_damage_bonus()));
-        view.push_str(&format!("│ • Scan Sector (3 AP)                                             │\n"));
-        view.push_str(&format!("│ • Build Outpost (10 AP)                                          │\n"));
+        view.push_str("ABILITIES:\n");
+        view.push_str(&format!("  * Move Fleet (5 AP)\n"));
+        view.push_str(&format!("  * Attack ({} damage, 8 AP)\n", 10 + player.get_damage_bonus()));
+        view.push_str(&format!("  * Scan Sector (3 AP)\n"));
+        view.push_str(&format!("  * Build Outpost (10 AP)\n"));
         if player.level >= 3 {
-            view.push_str(&format!("│ • Reinforce (15 AP) - Heal 20 HP                                │\n"));
+            view.push_str(&format!("  * Reinforce (15 AP) - Heal 20 HP\n"));
         }
         if player.level >= 5 {
-            view.push_str(&format!("│ • Sabotage (12 AP) - Destroy enemy outpost                      │\n"));
+            view.push_str(&format!("  * Sabotage (12 AP) - Destroy enemy outpost\n"));
         }
         if player.level >= 7 {
-            view.push_str(&format!("│ • Orbital Strike (20 AP) - 30 damage anywhere                   │\n"));
+            view.push_str(&format!("  * Orbital Strike (20 AP) - 30 damage anywhere\n"));
         }
-        view.push_str("└──────────────────────────────────────────────────────────────────┘\n");
+        view.push_str("\n");
         
         view
     }
@@ -190,259 +193,92 @@ impl Visualizer {
     /// Export player view to HTML
     pub fn export_player_html(state: &GameState, player_id: u8) -> Result<String, Box<dyn std::error::Error>> {
         let player = &state.players[player_id as usize];
-        let filename = format!("player_{}_view.html", player.name.to_lowercase());
+        let filename = format!("player_{}_view.txt", player.name.to_lowercase());
         
-        // Generate content
-        let protected_content = format!(r#"
-        <div class="header">
-            <h1>{} {}</h1>
-            <p>Turn {} - Solar Command Interface</p>
-        </div>
+        // Generate plain text content instead of HTML
+        let mut content = String::new();
         
-        <div class="section">
-            <h2>Statistics</h2>
-            <div class="stats">
-                <div>Level: {} - {}</div>
-                <div>Health: {}/{}</div>
-                <div>Experience: {}/{}</div>
-                <div>Action Points: {}</div>
-                <div>Damage Bonus: +{}</div>
-                <div>Scan Range: {}</div>
-            </div>
-        </div>
+        content.push_str("========================================\n");
+        content.push_str(&format!("INTERSTELLAR COMMAND - TURN {}\n", state.turn_number));
+        content.push_str(&format!("{} {}'s Status Report\n", player.rank, player.name));
+        content.push_str("========================================\n\n");
         
-        <div class="section">
-            <h2>Fleet Composition</h2>
-            <div class="fleet">
-                <div>Scouts: {}</div>
-                <div>Frigates: {}</div>
-                <div>Destroyers: {}</div>
-                <div>Command Centers: {}</div>
-                <div><strong>Total Ships: {}</strong></div>
-                <div><strong>Combat Strength: {}</strong></div>
-            </div>
-        </div>
+        content.push_str("STATISTICS\n");
+        content.push_str("----------\n");
+        content.push_str(&format!("Level: {} - {}\n", player.level, player.rank));
+        content.push_str(&format!("Health: {} / {}\n", player.health, 100 + (player.level as i32 - 1) * 20));
+        content.push_str(&format!("Experience: {} / {}\n", player.experience, player.level as u32 * 100));
+        content.push_str(&format!("Action Points: {}\n", player.ap_cap));
+        content.push_str(&format!("Damage Bonus: +{}\n", player.get_damage_bonus()));
+        content.push_str(&format!("Scan Range: {}\n", if player.get_scan_range_bonus() > 0 { "Extended" } else { "Normal" }));
+        content.push_str("\n");
         
-        <div class="section">
-            <h2>Controlled Sectors</h2>
-            <ul>
-                {}
-            </ul>
-        </div>
+        content.push_str("FLEET COMPOSITION\n");
+        content.push_str("-----------------\n");
+        content.push_str(&format!("Scouts: {}\n", player.fleet.scouts));
+        content.push_str(&format!("Frigates: {}\n", player.fleet.frigates));
+        content.push_str(&format!("Destroyers: {}\n", player.fleet.destroyers));
+        content.push_str(&format!("Command Centers: {}\n", player.fleet.command_centers));
+        content.push_str(&format!("Total Ships: {}\n", player.fleet.total_ships()));
+        content.push_str(&format!("Combat Strength: {}\n", player.fleet.combat_strength()));
+        content.push_str("\n");
         
-        <div class="section">
-            <h2>Solar System Map</h2>
-            <pre class="map">{}</pre>
-        </div>
+        content.push_str("CONTROLLED SECTORS\n");
+        content.push_str("------------------\n");
+        let mut has_sectors = false;
+        for sector in &state.sectors {
+            if sector.owner == Some(player_id) {
+                has_sectors = true;
+                if sector.has_outpost {
+                    content.push_str(&format!("* {} [OUTPOST]\n", sector.name));
+                } else {
+                    content.push_str(&format!("* {}\n", sector.name));
+                }
+            }
+        }
+        if !has_sectors {
+            content.push_str("No sectors under control\n");
+        }
+        content.push_str("\n");
         
-        <div class="section">
-            <h2>Recent Events</h2>
-            <ul>
-                {}
-            </ul>
-        </div>"#,
-            player.rank, player.name,
-            state.turn_number,
-            player.level, player.rank,
-            player.health, 100 + (player.level as i32 - 1) * 20,
-            player.experience, player.level as u32 * 100,
-            player.ap_cap,
-            player.get_damage_bonus(),
-            if player.get_scan_range_bonus() > 0 { "Extended" } else { "Normal" },
-            player.fleet.scouts,
-            player.fleet.frigates,
-            player.fleet.destroyers,
-            player.fleet.command_centers,
-            player.fleet.total_ships(),
-            player.fleet.combat_strength(),
-            state.sectors.iter()
-                .filter(|s| s.owner == Some(player_id))
-                .map(|s| format!("<li>{}{}</li>", 
-                    s.name, 
-                    if s.has_outpost { " <span class='outpost'>[OUTPOST]</span>" } else { "" }))
-                .collect::<Vec<_>>()
-                .join("\n                "),
-            Self::generate_map(state).replace("\n", "\n"),
-            state.event_log.iter()
-                .rev()
-                .take(10)
-                .map(|e| format!("<li>{}</li>", e))
-                .collect::<Vec<_>>()
-                .join("\n                ")
-        );
+        content.push_str("SECTOR MAP\n");
+        content.push_str("----------\n");
+        content.push_str(&Self::generate_map(state));
+        content.push_str("\n");
         
-        // Create password-protected HTML
+        content.push_str("RECENT EVENTS\n");
+        content.push_str("-------------\n");
+        for event in state.event_log.iter().rev().take(10) {
+            content.push_str(&format!("* {}\n", event));
+        }
+        
+        // Write as plain text file
+        fs::write(&filename, &content)?;
+        
+        // Also create a simple HTML version
+        let html_filename = format!("player_{}_view.html", player.name.to_lowercase());
         let html = format!(r#"<!DOCTYPE html>
 <html>
 <head>
-    <title>{} {}'s Command Dashboard - Password Protected</title>
+    <meta charset="UTF-8">
+    <title>{} {}'s Command Report</title>
     <style>
         body {{
-            background-color: #0a0a0a;
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
             padding: 20px;
-        }}
-        .container {{
-            max-width: 800px;
-            margin: 0 auto;
-        }}
-        .header {{
-            text-align: center;
-            border: 2px solid #00ff00;
-            padding: 20px;
-            margin-bottom: 20px;
-        }}
-        .section {{
-            border: 1px solid #00ff00;
-            padding: 15px;
-            margin-bottom: 15px;
-        }}
-        .stats {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }}
-        .fleet {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 10px 0;
-        }}
-        .fleet div {{
-            padding: 5px;
-            background: rgba(0, 255, 0, 0.05);
-            border: 1px solid rgba(0, 255, 0, 0.3);
-        }}
-        .fleet strong {{
-            color: #ffff00;
-        }}
-        .map {{
-            text-align: center;
-            font-size: 14px;
-            line-height: 1.5;
-        }}
-        h1, h2 {{
-            color: #00ff00;
-        }}
-        .warning {{
-            color: #ff0000;
-        }}
-        .outpost {{
-            color: #ffff00;
-        }}
-        #passwordForm {{
-            text-align: center;
-            margin-top: 100px;
-        }}
-        #passwordInput {{
-            background-color: #0a0a0a;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-        }}
-        #submitButton {{
-            background-color: #0a0a0a;
-            color: #00ff00;
-            border: 2px solid #00ff00;
-            padding: 10px 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            cursor: pointer;
-            margin-left: 10px;
-        }}
-        #submitButton:hover {{
-            background-color: #00ff00;
-            color: #0a0a0a;
-        }}
-        #errorMessage {{
-            color: #ff0000;
-            margin-top: 20px;
-            display: none;
-        }}
-        #content {{
-            display: none;
+            white-space: pre-wrap;
         }}
     </style>
 </head>
-<body>
-    <div class="container">
-        <div id="passwordForm">
-            <h1>Classified Command Interface</h1>
-            <p>This view is password protected</p>
-            <p>Enter your player password to access:</p>
-            <br>
-            <input type="password" id="passwordInput" placeholder="Enter password">
-            <button id="submitButton" onclick="checkPassword()">Access</button>
-            <div id="errorMessage">Invalid password</div>
-        </div>
-        
-        <div id="content">
-            {}
-        </div>
-    </div>
-    
-    <script>
-        // SHA-256 hash function
-        async function sha256(message) {{
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
-        }}
-        
-        // Stored password hash
-        const storedHash = '{}';
-        
-        async function checkPassword() {{
-            const input = document.getElementById('passwordInput').value;
-            const errorMsg = document.getElementById('errorMessage');
-            
-            // No password set allows empty input
-            if (storedHash === '' && input === '') {{
-                showContent();
-                return;
-            }}
-            
-            // Verify hash
-            const inputHash = await sha256(input);
-            
-            if (inputHash === storedHash || (storedHash === '' && input === '')) {{
-                showContent();
-            }} else {{
-                errorMsg.style.display = 'block';
-                document.getElementById('passwordInput').value = '';
-            }}
-        }}
-        
-        function showContent() {{
-            document.getElementById('passwordForm').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-        }}
-        
-        // Enter key support
-        document.getElementById('passwordInput').addEventListener('keypress', function(event) {{
-            if (event.key === 'Enter') {{
-                checkPassword();
-            }}
-        }});
-        
-        // Auto-focus
-        window.onload = function() {{
-            document.getElementById('passwordInput').focus();
-        }};
-    </script>
-</body>
+<body>{}</body>
 </html>"#,
             player.rank, player.name,
-            protected_content,
-            player.get_password_hash().unwrap_or(&String::new())
+            content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         );
         
-        fs::write(&filename, html)?;
+        fs::write(&html_filename, html)?;
         Ok(filename)
     }
     
@@ -450,45 +286,57 @@ impl Visualizer {
     pub fn generate_stats_comparison(state: &GameState) -> String {
         let mut chart = String::new();
         
-        chart.push_str("\n╔══════════════════════ PLAYER COMPARISON ═══════════════════════╗\n");
-        chart.push_str("║                    Player 1         vs         Player 2         ║\n");
-        chart.push_str("╠═════════════════════════════════════════════════════════════════╣\n");
+        chart.push_str("\n+----------------------- PLAYER COMPARISON ------------------------+\n");
+        chart.push_str("|                    Player 1         vs         Player 2          |\n");
+        chart.push_str("+------------------------------------------------------------------+\n");
         
         let p1 = &state.players[0];
         let p2 = &state.players[1];
         
-        chart.push_str(&format!("║ Name:          {:>15}     vs     {:<15} ║\n", p1.name, p2.name));
-        chart.push_str(&format!("║ Rank:          {:>15}     vs     {:<15} ║\n", p1.rank, p2.rank));
-        chart.push_str(&format!("║ Level:         {:>15}     vs     {:<15} ║\n", p1.level, p2.level));
-        chart.push_str(&format!("║ Health:        {:>15}     vs     {:<15} ║\n", p1.health, p2.health));
-        chart.push_str(&format!("║ AP Cap:        {:>15}     vs     {:<15} ║\n", p1.ap_cap, p2.ap_cap));
-        chart.push_str(&format!("║ Damage:        {:>15}     vs     {:<15} ║\n", 
+        chart.push_str(&format!("| Name:          {:>15}     vs     {:<15} |\n", p1.name, p2.name));
+        chart.push_str(&format!("| Rank:          {:>15}     vs     {:<15} |\n", p1.rank, p2.rank));
+        chart.push_str(&format!("| Level:         {:>15}     vs     {:<15} |\n", p1.level, p2.level));
+        chart.push_str(&format!("| Health:        {:>15}     vs     {:<15} |\n", p1.health, p2.health));
+        chart.push_str(&format!("| AP Cap:        {:>15}     vs     {:<15} |\n", p1.ap_cap, p2.ap_cap));
+        chart.push_str(&format!("| Damage:        {:>15}     vs     {:<15} |\n", 
             format!("+{}", p1.get_damage_bonus()), format!("+{}", p2.get_damage_bonus())));
         
         // Sector control
         let p1_sectors = state.sectors.iter().filter(|s| s.owner == Some(0)).count();
         let p2_sectors = state.sectors.iter().filter(|s| s.owner == Some(1)).count();
-        chart.push_str(&format!("║ Sectors:       {:>15}     vs     {:<15} ║\n", p1_sectors, p2_sectors));
+        chart.push_str(&format!("| Sectors:       {:>15}     vs     {:<15} |\n", p1_sectors, p2_sectors));
         
-        chart.push_str("╠═════════════════════════════════════════════════════════════════╣\n");
+        chart.push_str("+------------------------------------------------------------------+\n");
         
         // Health bars
-        chart.push_str("║ Health Bars:                                                    ║\n");
-        chart.push_str(&format!("║ {:14} [", p1.name));
+        chart.push_str("| Health Bars:                                                     |\n");
+        chart.push_str(&format!("| {:14} [", p1.name));
         let p1_bar_len = (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 20.0) as usize;
         for i in 0..20 {
-            if i < p1_bar_len { chart.push('█'); } else { chart.push('░'); }
+            if i < p1_bar_len { chart.push('#'); } else { chart.push('-'); }
         }
-        chart.push_str(&format!("] {}%                           ║\n", (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 100.0) as i32));
+        chart.push_str(&format!("] {}%", (p1.health as f32 / (100.0 + (p1.level as f32 - 1.0) * 20.0) * 100.0) as i32));
         
-        chart.push_str(&format!("║ {:14} [", p2.name));
+        // Pad to consistent width
+        while chart.lines().last().unwrap_or("").len() < 67 {
+            chart.push(' ');
+        }
+        chart.push_str("|\n");
+        
+        chart.push_str(&format!("| {:14} [", p2.name));
         let p2_bar_len = (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 20.0) as usize;
         for i in 0..20 {
-            if i < p2_bar_len { chart.push('█'); } else { chart.push('░'); }
+            if i < p2_bar_len { chart.push('#'); } else { chart.push('-'); }
         }
-        chart.push_str(&format!("] {}%                           ║\n", (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 100.0) as i32));
+        chart.push_str(&format!("] {}%", (p2.health as f32 / (100.0 + (p2.level as f32 - 1.0) * 20.0) * 100.0) as i32));
         
-        chart.push_str("╚═════════════════════════════════════════════════════════════════╝\n");
+        // Pad to consistent width
+        while chart.lines().last().unwrap_or("").len() < 67 {
+            chart.push(' ');
+        }
+        chart.push_str("|\n");
+        
+        chart.push_str("+------------------------------------------------------------------+\n");
         
         chart
     }

@@ -37,10 +37,10 @@ pub struct GameState {
 
 impl GameState {
     pub fn new() -> Self {
-        println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-        println!("║{:^68}║", "INTERSTELLAR COMMAND");
-        println!("║{:^68}║", "A Terminal Strategy Game");
-        println!("╚{}╝\n", "═".repeat(68));
+        println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+        println!("|{:^68}|", "INTERSTELLAR COMMAND");
+        println!("|{:^68}|", "A Terminal Strategy Game");
+        println!("+{}+\n", "=".repeat(68));
         
         // Choose map size
         println!("Select map size:");
@@ -117,11 +117,11 @@ impl GameState {
         
         let players = [player1, player2];
         
-        println!("\n{}", "─".repeat(70));
+        println!("\n{}", "-".repeat(70));
         println!("Starting new campaign...");
         println!("- {} begins at {}", players[0].name, sectors[start1 as usize].name);
         println!("- {} begins at {}", players[1].name, sectors[start2 as usize].name);
-        println!("{}\n", "─".repeat(70));
+        println!("{}\n", "-".repeat(70));
         
         std::thread::sleep(std::time::Duration::from_secs(2));
         
@@ -137,10 +137,10 @@ impl GameState {
     }
     
     pub fn new_with_names(player1_name: String, player2_name: String) -> Self {
-        println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-        println!("║{:^68}║", "INTERSTELLAR COMMAND");
-        println!("║{:^68}║", "A Terminal Strategy Game");
-        println!("╚{}╝\n", "═".repeat(68));
+        println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+        println!("|{:^68}|", "INTERSTELLAR COMMAND");
+        println!("|{:^68}|", "A Terminal Strategy Game");
+        println!("+{}+\n", "=".repeat(68));
         
         // Choose map size
         println!("Select map size:");
@@ -251,39 +251,39 @@ impl GameState {
             let pid = self.current_player as usize;
             
             // New turn banner
-            println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-            println!("║{:^68}║", format!("TURN {} - {} PHASE", self.turn_number, 
+            println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+            println!("|{:^68}|", format!("TURN {} - {} PHASE", self.turn_number, 
                 if pid == 0 { "PLAYER 1" } else { "PLAYER 2" }));
-            println!("╚{}╝\n", "═".repeat(68));
+            println!("+{}+\n", "=".repeat(68));
             
             // Password verification for turn start
             if self.turn_number > 1 {  // Skip password on first turn since they just set it
-                println!("┌─ AUTHENTICATION ─────────────────────────────────────────────────┐");
+                println!("+-- AUTHENTICATION ------------------------------------------------+");
                 
                 let mut authenticated = false;
                 for attempt in 1..=2 {
-                    print!("│ {}, enter password (attempt {}/2): ", self.players[pid].name, attempt);
+                    print!("| {}, enter password (attempt {}/2): ", self.players[pid].name, attempt);
                     io::stdout().flush().unwrap();
                     let password = match rpassword::read_password() {
                         Ok(pass) => pass,
                         Err(_) => {
-                            println!("│ Error reading password. Try again.                               │");
+                            println!("| Error reading password. Try again.                               |");
                             continue;
                         }
                     };
                     
                     if self.players[pid].verify_password(&password) {
-                        println!("│ [OK] Authentication successful!                                  │");
+                        println!("| [OK] Authentication successful!                                  |");
                         authenticated = true;
                         break;
                     } else if attempt == 1 {
-                        println!("│ Incorrect password. One more attempt remaining.                 │");
+                        println!("| Incorrect password. One more attempt remaining.                 |");
                     }
                 }
                 
                 if !authenticated {
-                    println!("│ Authentication failed! Turn forfeited.                          │");
-                    println!("└──────────────────────────────────────────────────────────────────┘");
+                    println!("| Authentication failed! Turn forfeited.                          |");
+                    println!("+-----------------------------------------------------------------+");
                     println!("\nPassing control to opponent in 3 seconds...");
                     self.current_player = 1 - self.current_player;
                     std::thread::sleep(std::time::Duration::from_secs(3));
@@ -297,19 +297,19 @@ impl GameState {
                     continue;
                 }
                 
-                println!("└──────────────────────────────────────────────────────────────────┘\n");
+                println!("+-----------------------------------------------------------------+\n");
             }
             
             self.players[pid].reset_ap();
             
             // Player overview section
-            println!("┌─ COMMANDER OVERVIEW ─────────────────────────────────────────────┐");
-            println!("│ {} {} (Level {})                                          │", 
+            println!("+-- COMMANDER OVERVIEW --------------------------------------------+");
+            println!("| {} {} (Level {})                                          |", 
                 self.players[pid].rank, 
                 self.players[pid].name,
                 self.players[pid].level
             );
-            println!("└──────────────────────────────────────────────────────────────────┘");
+            println!("+-----------------------------------------------------------------+");
             
             // Show map
             println!("\n▼ STRATEGIC MAP ▼");
@@ -317,9 +317,9 @@ impl GameState {
             
             // Action phase
             loop {
-                println!("\n{}", "▬".repeat(70));
+                println!("\n{}", "-".repeat(70));
                 self.display_status();
-                println!("{}", "▬".repeat(70));
+                println!("{}", "-".repeat(70));
                 self.display_menu();
                 
                 print!("\nSelect action: ");
@@ -373,9 +373,9 @@ impl GameState {
             
             // End-of-turn resolution
             if !self.game_over {
-                println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-                println!("║{:^68}║", "TURN SUMMARY");
-                println!("╚{}╝", "═".repeat(68));
+                println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+                println!("|{:^68}|", "TURN SUMMARY");
+                println!("+{}+", "=".repeat(68));
                 
                 // Check for level up
                 let old_level = self.players[pid].level;
@@ -429,37 +429,37 @@ impl GameState {
         }
         
         // Game over
-        println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-        println!("║{:^68}║", "CAMPAIGN CONCLUDED");
-        println!("╚{}╝", "═".repeat(68));
+        println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+        println!("|{:^68}|", "CAMPAIGN CONCLUDED");
+        println!("+{}+", "=".repeat(68));
         println!("\nFinal Turn: {}", self.turn_number);
         
         // Show final comparison
         println!("{}", Visualizer::generate_stats_comparison(self));
         
         println!("\nCAMPAIGN CHRONICLE");
-        println!("{}", "─".repeat(70));
+        println!("{}", "-".repeat(70));
         for (i, event) in self.event_log.iter().enumerate() {
             println!("Turn {:2}: {}", i + 1, event);
         }
         
         // Export final views
-        println!("\n{}", "─".repeat(70));
+        println!("\n{}", "-".repeat(70));
         println!("Generating final reports...");
         self.export_views();
         
-        println!("\n{}", "═".repeat(70));
+        println!("\n{}", "-".repeat(70));
         println!("Thank you for playing Interstellar Command!");
         println!("Your campaign data has been preserved.");
-        println!("{}", "═".repeat(70));
+        println!("{}", "-".repeat(70));
     }
     
     fn display_status(&self) {
         let player = &self.players[self.current_player as usize];
         let sector = &self.sectors[player.current_sector as usize];
         
-        println!("┌─ STATUS ─────────────────────────────────────────────────────────┐");
-        println!("│ Health: {:3} HP    AP: {:2}/{}    XP: {:3}/{} (Level {})          │", 
+        println!("+-- STATUS --------------------------------------------------------+");
+        println!("| Health: {:3} HP    AP: {:2}/{}    XP: {:3}/{} (Level {})          |", 
             player.health, 
             player.ap_remaining, 
             player.ap_cap, 
@@ -467,25 +467,25 @@ impl GameState {
             player.level as u32 * 100,
             player.level
         );
-        println!("│ Location: {:25} Rank: {:15} │", 
+        println!("| Location: {:25} Rank: {:15} |", 
             sector.name,
             player.rank
         );
-        println!("└──────────────────────────────────────────────────────────────────┘");
+        println!("+-----------------------------------------------------------------+");
         
         // Show fleet composition
-        println!("\n┌─ FLEET COMPOSITION ──────────────────────────────────────────────┐");
-        println!("│ Scouts: {}  Frigates: {}  Destroyers: {}  Command Centers: {}        │",
+        println!("\n+-- FLEET COMPOSITION ---------------------------------------------+");
+        println!("| Scouts: {}  Frigates: {}  Destroyers: {}  Command Centers: {}        |",
             player.fleet.scouts, player.fleet.frigates, 
             player.fleet.destroyers, player.fleet.command_centers
         );
-        println!("│ Total Ships: {}    Combat Strength: {}                           │",
+        println!("| Total Ships: {}    Combat Strength: {}                           |",
             player.fleet.total_ships(), player.fleet.combat_strength()
         );
         if !player.can_capture_sector() {
-            println!("│ [!] Need Command Center to capture sectors (unlocks at Level 4) │");
+            println!("| [!] Need Command Center to capture sectors (unlocks at Level 4) |");
         }
-        println!("└──────────────────────────────────────────────────────────────────┘");
+        println!("+-----------------------------------------------------------------+");
         
         // Show controlled sectors
         let controlled: Vec<String> = self.sectors.iter()
@@ -507,33 +507,33 @@ impl GameState {
     fn display_menu(&self) {
         let player = &self.players[self.current_player as usize];
         
-        println!("\n┌─ COMMAND OPTIONS ────────────────────────────────────────────────┐");
-        println!("│ AP Remaining: {:2}                                                 │", player.ap_remaining);
-        println!("├──────────────────────────────────────────────────────────────────┤");
-        println!("│  1) Move Fleet .................. {} AP                          │", MOVE_COST);
-        println!("│  2) Attack Enemy ................ {} AP (deals {} damage)        │", 
+        println!("\n+-- COMMAND OPTIONS -----------------------------------------------+");
+        println!("| AP Remaining: {:2}                                                 |", player.ap_remaining);
+        println!("+-----------------------------------------------------------------+");
+        println!("|  1) Move Fleet .................. {} AP                          |", MOVE_COST);
+        println!("|  2) Attack Enemy ................ {} AP (deals {} damage)        |", 
             ATTACK_COST, 10 + player.get_damage_bonus());
-        println!("│  3) Scan Sector ................. {} AP                          │", SCAN_COST);
-        println!("│  4) Build Outpost ............... {} AP                         │", BUILD_COST);
+        println!("|  3) Scan Sector ................. {} AP                          |", SCAN_COST);
+        println!("|  4) Build Outpost ............... {} AP                         |", BUILD_COST);
         
         if player.level >= 3 {
-            println!("│  5) Reinforce Fleet ............. {} AP (heals 20 HP)          │", REINFORCE_COST);
+            println!("|  5) Reinforce Fleet ............. {} AP (heals 20 HP)          |", REINFORCE_COST);
         }
         if player.level >= 5 {
-            println!("│  6) Sabotage Outpost ............ {} AP                         │", SABOTAGE_COST);
+            println!("|  6) Sabotage Outpost ............ {} AP                         |", SABOTAGE_COST);
         }
         if player.level >= 7 {
-            println!("│  7) Orbital Strike .............. {} AP (30 damage, ranged)    │", ORBITAL_STRIKE_COST);
+            println!("|  7) Orbital Strike .............. {} AP (30 damage, ranged)    |", ORBITAL_STRIKE_COST);
         }
         
-        println!("├──────────────────────────────────────────────────────────────────┤");
-        println!("│  8) View Dashboard .............. FREE                           │");
-        println!("│  9) Export Game Data ............ FREE                           │");
-        println!("│ 10) Open Interactive Map ........ FREE (opens in browser)       │");
-        println!("│ 11) View Game Manual ............ FREE (opens in browser)       │");
-        println!("│ 12) End Turn .................... Saves remaining AP             │");
-        println!("│ 13) Quit Game ................... Forfeit the match              │");
-        println!("└──────────────────────────────────────────────────────────────────┘");
+        println!("+-----------------------------------------------------------------+");
+        println!("|  8) View Dashboard .............. FREE                           |");
+        println!("|  9) Export Game Data ............ FREE                           |");
+        println!("| 10) Open Interactive Map ........ FREE (opens in browser)       |");
+        println!("| 11) View Game Manual ............ FREE (opens in browser)       |");
+        println!("| 12) End Turn .................... Saves remaining AP             |");
+        println!("| 13) Quit Game ................... Forfeit the match              |");
+        println!("+-----------------------------------------------------------------+");
     }
     
     fn view_dashboard(&self, pid: usize) {

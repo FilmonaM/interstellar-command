@@ -56,8 +56,8 @@ impl Player {
             id,
             name,
             health: 100,
-            ap_cap: 25,
-            ap_remaining: 25,
+            ap_cap: 15,  // Reduced from 25 to 15 for better early game pacing
+            ap_remaining: 15,
             current_sector: starting_sector,
             level: 1,
             experience: 0,
@@ -135,46 +135,50 @@ impl Player {
     }
     
     fn apply_level_bonuses(&mut self) {
-        // Apply stat bonuses
+        // Apply stat bonuses - more gradual progression
         match self.level {
             2 => {
-                self.ap_cap += 3;
-                self.fleet.scouts += 1; // Gain a scout ship
+                self.ap_cap += 2;  // 15 -> 17
+                self.fleet.scouts += 1;
             }
             3 => {
+                self.ap_cap += 2;  // 17 -> 19
                 self.health += 20;
-                self.fleet.frigates += 1; // Gain another frigate
+                self.fleet.frigates += 1;
             }
             4 => {
-                self.ap_cap += 3;
-                self.fleet.command_centers += 1; // First command center!
+                self.ap_cap += 2;  // 19 -> 21
+                self.fleet.command_centers += 1; // Critical level!
             }
             5 => {
+                self.ap_cap += 2;  // 21 -> 23
                 self.health += 20;
-                self.fleet.destroyers += 1; // First destroyer
+                self.fleet.destroyers += 1;
                 self.fleet.scouts += 1;
             }
             6 => {
-                self.ap_cap += 4;
-                self.fleet.frigates += 2; // Fleet expansion
+                self.ap_cap += 2;  // 23 -> 25
+                self.fleet.frigates += 2;
             }
             7 => {
+                self.ap_cap += 3;  // 25 -> 28
                 self.health += 30;
-                self.fleet.command_centers += 1; // Second command center
+                self.fleet.command_centers += 1;
                 self.fleet.destroyers += 1;
             }
             8 => {
-                self.ap_cap += 4;
+                self.ap_cap += 2;  // 28 -> 30
                 self.fleet.frigates += 2;
                 self.fleet.destroyers += 1;
             }
             9 => {
+                self.ap_cap += 3;  // 30 -> 33
                 self.health += 30;
-                self.fleet.command_centers += 1; // Third command center
+                self.fleet.command_centers += 1;
                 self.fleet.destroyers += 2;
             }
             10 => {
-                self.ap_cap += 5;
+                self.ap_cap += 2;  // 33 -> 35
                 self.health += 50;
                 // Massive fleet bonus
                 self.fleet.scouts += 2;

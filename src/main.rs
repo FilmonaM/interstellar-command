@@ -19,9 +19,9 @@ fn main() {
 }
 
 fn start_new_game() {
-    println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-    println!("║{:^68}║", "NEW CAMPAIGN");
-    println!("╚{}╝\n", "═".repeat(68));
+    println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+    println!("|{:^68}|", "NEW CAMPAIGN");
+    println!("+{}+\n", "=".repeat(68));
     
     // Just get player names first
     print!("Player 1 name: ");
@@ -40,10 +40,10 @@ fn start_new_game() {
     let mut state = GameState::new_with_names(player1_name, player2_name);
     
     // Now set passwords securely
-    println!("\n┌─ PASSWORD SETUP ─────────────────────────────────────────────────┐");
-    println!("│ Passwords will be hidden as you type.                           │");
-    println!("│ Press Enter for no password (not recommended).                  │");
-    println!("└──────────────────────────────────────────────────────────────────┘\n");
+    println!("\n+-- PASSWORD SETUP ------------------------------------------------+");
+    println!("| Passwords will be hidden as you type.                           |");
+    println!("| Press Enter for no password (not recommended).                  |");
+    println!("+-----------------------------------------------------------------+\n");
     
     // Player 1 password
     print!("{}, set your password: ", state.players[0].name);
@@ -76,16 +76,16 @@ fn start_new_game() {
     // Save initial state
     match persistence::save(&state) {
         Ok(_) => {
-            println!("\n╔══════════════════════════════════════════════════════════════════╗");
-            println!("║                      GAME SAVED SUCCESSFULLY                      ║");
-            println!("╠══════════════════════════════════════════════════════════════════╣");
-            println!("║ Players can now take turns asynchronously.                       ║");
-            println!("║                                                                   ║");
-            println!("║ To play your turn:                                               ║");
-            println!("║   ./play.sh                                                       ║");
-            println!("║                                                                   ║");
-            println!("║ Each player logs in separately to take their turn.               ║");
-            println!("╚══════════════════════════════════════════════════════════════════╝");
+            println!("\n+==================================================================+");
+            println!("|                      GAME SAVED SUCCESSFULLY                      |");
+            println!("+==================================================================+");
+            println!("| Players can now take turns asynchronously.                       |");
+            println!("|                                                                   |");
+            println!("| To play your turn:                                               |");
+            println!("|   ./play.sh                                                       |");
+            println!("|                                                                   |");
+            println!("| Each player logs in separately to take their turn.               |");
+            println!("+==================================================================+");
         }
         Err(e) => {
             eprintln!("Failed to save: {}", e);
@@ -108,12 +108,12 @@ fn resume_game() {
     clear_screen();
     
     // Show banner
-    println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-    println!("║{:^68}║", format!("TURN {} - CYCLE {}", 
+    println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+    println!("|{:^68}|", format!("TURN {} - CYCLE {}", 
         state.turn_manager.current_turn.number,
         (state.turn_manager.current_turn.number + 1) / 2
     ));
-    println!("╚{}╝\n", "═".repeat(68));
+    println!("+{}+\n", "=".repeat(68));
     
     // Show turn status
     println!("Turn Status: {}", state.turn_manager.get_turn_summary());
@@ -269,46 +269,46 @@ fn display_player_status(state: &GameState, player_id: u8) {
     let player = &state.players[player_id as usize];
     let sector = &state.sectors[player.current_sector as usize];
     
-    println!("╔══════════════════════════════════════════════════════════════════╗");
-    println!("║ {} {} (Level {})                                                  ║", player.rank, player.name, player.level);
-    println!("║ Health: {} HP │ AP: {}/{} │ XP: {}/{} │ Fleet: {} ships        ║", 
+    println!("+==================================================================+");
+    println!("| {} {} (Level {})                                                  |", player.rank, player.name, player.level);
+    println!("| Health: {} HP | AP: {}/{} | XP: {}/{} | Fleet: {} ships        |", 
         player.health, player.ap_remaining, player.ap_cap, 
         player.experience, player.level as u32 * 100,
         player.fleet.total_ships());
-    println!("║ Location: {} │ Rank: {}                                          ║", 
+    println!("| Location: {} | Rank: {}                                          |", 
         sector.name, player.rank);
-    println!("╚══════════════════════════════════════════════════════════════════╝");
+    println!("+==================================================================+");
 }
 
 fn display_action_menu(state: &GameState, player_id: u8) {
     let player = &state.players[player_id as usize];
     
-    println!("\n┌─ Actions ─────────────────────────┬─ Commands ───────────────────┐");
-    println!("│ move <sector>  - Move fleet (5 AP) │ status - Show details        │");
-    println!("│ attack         - Attack enemy (8 AP)│ map    - Show map            │");
-    println!("│ scan <sector>  - Scan sector (3 AP)│ end    - End turn            │");
-    println!("│ build          - Build outpost (10)│ help   - Show help           │");
+    println!("\n+-- Actions -----------------+-- Commands ---------------------+");
+    println!("| move <sector>  - Move (5 AP) | status - Show details        |");
+    println!("| attack         - Attack (8)  | map    - Show map            |");
+    println!("| scan <sector>  - Scan (3 AP) | end    - End turn            |");
+    println!("| build          - Build (10)  | help   - Show help           |");
     
     if player.level >= 3 {
-        println!("│ reinforce      - Heal fleet (15 AP)│                              │");
+        println!("| reinforce      - Heal (15)   |                              |");
     } else {
-        println!("│                                    │                              │");
+        println!("|                              |                              |");
     }
     
-    println!("└────────────────────────────────────┴──────────────────────────────┘");
+    println!("+-----------------------------+------------------------------+");
 }
 
 fn show_help() {
-    println!("\n╔════════════════════════════════ HELP ════════════════════════════╗");
-    println!("║ Actions cost AP. Your turn ends when you run out.                ║");
-    println!("╟───────────────────────────────────────────────────────────────────╢");
-    println!("║ move <sector> - Move to adjacent sector                           ║");
-    println!("║ attack - Attack enemy in your sector                              ║");
-    println!("║ scan <sector> - Reveal sector info                                ║");
-    println!("║ build - Build outpost (must control sector)                       ║");
-    println!("╟───────────────────────────────────────────────────────────────────╢");
-    println!("║ Type 'end' to end turn early and save AP.                        ║");
-    println!("╚═══════════════════════════════════════════════════════════════════╝");
+    println!("\n+================================ HELP ================================+");
+    println!("| Actions cost AP. Your turn ends when you run out.                |");
+    println!("+-------------------------------------------------------------------+");
+    println!("| move <sector> - Move to adjacent sector                           |");
+    println!("| attack - Attack enemy in your sector                              |");
+    println!("| scan <sector> - Reveal sector info                                |");
+    println!("| build - Build outpost (must control sector)                       |");
+    println!("+-------------------------------------------------------------------+");
+    println!("| Type 'end' to end turn early and save AP.                        |");
+    println!("+===================================================================+");
 }
 
 fn show_detailed_status(state: &GameState, player_id: u8) {
@@ -318,10 +318,10 @@ fn show_detailed_status(state: &GameState, player_id: u8) {
 fn end_turn(state: &mut GameState, player_id: u8) {
     let player = &state.players[player_id as usize];
     
-    println!("\n╔═══════════════════════ TURN COMPLETE ════════════════════════════╗");
-    println!("║ Actions taken: {}                                                  ║", state.turn_manager.current_turn.actions_taken.len());
-    println!("║ AP remaining: {} (saved for next turn)                             ║", player.ap_remaining);
-    println!("╚═══════════════════════════════════════════════════════════════════╝");
+    println!("\n+======================= TURN COMPLETE ==========================+");
+    println!("| Actions taken: {}                                                  |", state.turn_manager.current_turn.actions_taken.len());
+    println!("| AP remaining: {} (saved for next turn)                             |", player.ap_remaining);
+    println!("+=================================================================+");
     
     // Mark turn as complete
     state.turn_manager.current_turn.complete();
@@ -369,9 +369,9 @@ fn confirm_quit() -> bool {
 }
 
 fn handle_game_over(state: &GameState) {
-    println!("\n{}", "╔".to_string() + &"═".repeat(68) + "╗");
-    println!("║{:^68}║", "CAMPAIGN CONCLUDED");
-    println!("╚{}╝", "═".repeat(68));
+    println!("\n{}", "+".to_string() + &"=".repeat(68) + "+");
+    println!("|{:^68}|", "CAMPAIGN CONCLUDED");
+    println!("+{}+", "=".repeat(68));
     
     // Determine winner
     let winner = if state.players[0].is_alive() { 0 } else { 1 };

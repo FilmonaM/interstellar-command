@@ -19,13 +19,30 @@ elif [ "$1" == "help" ]; then
 elif [ "$1" == "status" ]; then
     if [ -f "game_state.json" ]; then
         echo "Checking game status..."
-        turn=$(grep -o '"number":[0-9]*' game_state.json | head -1 | cut -d: -f2)
-        active=$(grep -o '"active_player":[0-9]*' game_state.json | head -1 | cut -d: -f2)
-        phase=$(grep -o '"phase":"[^"]*"' game_state.json | head -1 | cut -d: -f3 | tr -d '"')
+        # Extract turn info from JSON using grep and sed
+        TURN=$(grep -o '"turn_number":[0-9]*' game_state.json | sed 's/.*://')
+        CURRENT=$(grep -o '"current_player":[0-9]*' game_state.json | sed 's/.*://')
         
-        echo "Turn: $turn"
-        echo "Active: Player $((active + 1))"
-        echo "Phase: $phase"
+        # Try to get player names
+        PLAYER1=$(grep -o '"name":"[^"]*"' game_state.json | head -1 | sed 's/.*:"\(.*\)"/\1/')
+        PLAYER2=$(grep -o '"name":"[^"]*"' game_state.json | head -2 | tail -1 | sed 's/.*:"\(.*\)"/\1/')
+        
+        echo ""
+        echo "GAME STATUS"
+        echo "-----------"
+        echo "Turn: $TURN"
+        
+        if [ "$CURRENT" = "0" ]; then
+            echo "Waiting for: $PLAYER1 to take their turn"
+        else
+            echo "Waiting for: $PLAYER2 to take their turn"
+        fi
+        
+        # Check turn phase if available
+        PHASE=$(grep -o '"phase":"[^"]*"' game_state.json | tail -1 | sed 's/.*:"\(.*\)"/\1/')
+        if [ ! -z "$PHASE" ]; then
+            echo "Turn phase: $PHASE"
+        fi
     else
         echo "No game in progress."
     fi

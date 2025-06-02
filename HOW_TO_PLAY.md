@@ -76,16 +76,16 @@ Your AP (Action Points) increases as you level up:
 
 | Level | Rank          | AP Cap | New Ships                |
 |-------|---------------|--------|--------------------------|
-| 1     | Legionnaire   | 25     | 1 Frigate (starter)      |
-| 2     | Centurion     | 28     | +1 Scout                 |
-| 3     | Tribune       | 28     | +1 Frigate               |
-| 4     | Prefect       | 31     | +1 Command Center        |
-| 5     | Legate        | 31     | +1 Destroyer, +1 Scout   |
-| 6     | Praetor       | 35     | +2 Frigates              |
-| 7     | Consul        | 35     | +1 Command Center, +1 Destroyer |
-| 8     | Imperator     | 39     | +2 Frigates, +1 Destroyer |
-| 9     | Sovereign     | 39     | +1 Command Center, +2 Destroyers |
-| 10    | Archsovereign | 44     | +2 Scouts, +3 Frigates, +2 Destroyers, +1 Command Center |
+| 1     | Legionnaire   | 15     | 1 Frigate (starter)      |
+| 2     | Centurion     | 17     | +1 Scout                 |
+| 3     | Tribune       | 19     | +1 Frigate               |
+| 4     | Prefect       | 21     | +1 Command Center        |
+| 5     | Legate        | 23     | +1 Destroyer, +1 Scout   |
+| 6     | Praetor       | 25     | +2 Frigates              |
+| 7     | Consul        | 28     | +1 Command Center, +1 Destroyer |
+| 8     | Imperator     | 30     | +2 Frigates, +1 Destroyer |
+| 9     | Sovereign     | 33     | +1 Command Center, +2 Destroyers |
+| 10    | Archsovereign | 35     | +2 Scouts, +3 Frigates, +2 Destroyers, +1 Command Center |
 
 ## Why No tmux/screen?
 
