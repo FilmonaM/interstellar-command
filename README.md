@@ -53,7 +53,3 @@ src/
 ```
 
 Built with Rust. Uses JSON for saves. SHA256 for passwords.
-
-## License
-
-MIT
