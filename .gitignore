@@ -1,22 +1,22 @@
-# Rust build artifacts
-target/
-Cargo.lock
+# Rust
+backend/target/
+backend/Cargo.lock
 
-# IDE files
+# Game data
+data/game_state.json
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Game files
-game_state.json
-player_*.html
-interstellar_map.html
-interstellar_manual.html
+# Logs
+*.log
 
 # Backup files
 *.bak

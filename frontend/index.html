@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interstellar Command</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+</head>
+<body>
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <div class="status-item">
+            <span class="label">AP:</span>
+            <span id="ap" class="value">50</span>/<span id="max-ap" class="value">100</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Credits:</span>
+            <span id="credits" class="value">100</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Level:</span>
+            <span id="level" class="value">1</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Ships:</span>
+            <span id="ship-count" class="value">1</span>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="game-container">
+        <!-- Left Panel: Sector Map -->
+        <div id="map-panel">
+            <div class="panel-header">SECTOR MAP - EARTH</div>
+            <canvas id="sector-map" width="400" height="400"></canvas>
+            <div id="sector-info">Click sector for details</div>
+        </div>
+
+        <!-- Right Panel: Terminal -->
+        <div id="terminal-panel">
+            <div class="panel-header">COMMAND TERMINAL</div>
+            <div id="terminal-output"></div>
+            <div id="input-line">
+                <span class="prompt">$</span>
+                <input type="text" id="command-input" placeholder="Enter command..." autocomplete="off">
+            </div>
+            
+            <!-- Quick Commands for Mobile -->
+            <div id="quick-commands">
+                <button class="quick-btn" data-cmd="status">STATUS</button>
+                <button class="quick-btn" data-cmd="fleet">FLEET</button>
+                <button class="quick-btn" data-cmd="scan ">SCAN</button>
+                <button class="quick-btn" data-cmd="move ">MOVE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>INTERSTELLAR COMMAND</h2>
+            <p>Enter your credentials to connect</p>
+            
+            <div id="login-form">
+                <input type="text" id="player-id-input" placeholder="Player ID (leave empty for new player)">
+                <input type="text" id="player-name-input" placeholder="Commander Name">
+                <button id="connect-btn">CONNECT</button>
+            </div>
+            
+            <div class="test-players">
+                <p>Test Players:</p>
+                <button class="test-player-btn" data-id="test-player-1">Commander Alpha</button>
+                <button class="test-player-btn" data-id="test-player-2">Commander Beta</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script src="map.js"></script>
+</body>
+</html> 
