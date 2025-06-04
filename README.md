@@ -2,97 +2,155 @@
 
 A web-based space strategy game with terminal aesthetics. Command your fleet across sectors, control territory, and battle for dominance.
 
-## Features
+## Quick Start (Local Testing)
 
-- Terminal-style interface with visual sector map
-- Real-time multiplayer via WebSocket
-- 8-hour AP (Action Point) refresh cycles
-- Command ships, control sectors, manage fleets
-- Works on desktop and mobile (iPhone via Tailscale)
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd interstellar-command
 
-## Quick Start
+# Run the server (Windows)
+./run.bat
 
-### Prerequisites
+# Run the server (Linux/Mac)
+./run.sh
+```
 
-- Rust (latest stable)
-- Node.js (for development server, optional)
+Then open your browser to `http://localhost:8080`
 
-### Running the Game
+## Server Deployment (Linux/Raspberry Pi)
 
-1. **Start the backend server:**
-   ```bash
-   cd backend
-   cargo run
-   ```
-   The server will start on `http://localhost:8080`
+### First Time Setup
 
-2. **Access the game:**
-   - Open your browser to `http://localhost:8080`
-   - Use one of the test players:
-     - Commander Alpha (test-player-1)
-     - Commander Beta (test-player-2)
-   - Or create a new player
+```bash
+# Clone and enter directory
+git clone <your-repo-url>
+cd interstellar-command
 
-### For Mobile Access (iPhone)
+# Make script executable
+chmod +x run.sh
 
-1. **Install Tailscale** on your server and iPhone
-2. **Connect both devices** to your Tailscale network
-3. **Access via Tailscale IP:** `http://[your-tailscale-ip]:8080`
-4. **Add to Home Screen** for app-like experience
+# Run the server (builds automatically on first run)
+./run.sh
+```
 
-## Commands
+### Updating the Server
 
-Basic commands you can type in the terminal:
+```bash
+# Pull latest changes
+git pull origin main
 
-- `status` - View your current stats
-- `fleet` - List all your ships
-- `scan <sector-id>` - Scan a sector (e.g., `scan earth-5`)
-- `move <ship-id> <sector-id>` - Move a ship
-- `declare <sector-id> <command-ship-id>` - Declare control (requires command ship)
-- `garrison <sector-id> <garrison-ship-id>` - Set garrison to hold sector
+# Rebuild and run
+cd backend
+cargo build --release
+cd ..
+./run.sh
+```
 
-## Game Rules
+### Running 24/7
 
+```bash
+# Using screen (recommended)
+screen -S interstellar
+./run.sh
+# Press Ctrl+A then D to detach
+
+# To reattach later
+screen -r interstellar
+
+# OR using nohup
+nohup ./run.sh > game.log 2>&1 &
+```
+
+## Mobile Access (iPhone/Android)
+
+### Option 1: Tailscale (Recommended)
+1. Install Tailscale on your server
+2. Install Tailscale app on your phone
+3. Connect both to same Tailnet
+4. Access via: `http://[tailscale-ip]:8080`
+5. Add to Home Screen for app experience
+
+### Option 2: Local Network
+- Access via: `http://[server-local-ip]:8080`
+- Find server IP with `ip addr` or `ifconfig`
+
+## How to Play
+
+### Test Players (for quick testing)
+- **Commander Alpha** (ID: test-player-1)
+- **Commander Beta** (ID: test-player-2)
+
+### Commands
+```bash
+status              # View your stats
+fleet               # List all ships
+scan earth-5        # Scan a sector
+move ship-1 earth-7 # Move ship to sector
+```
+
+### Game Rules
 - Start with 1 Frigate and 50 AP
-- Every 8 hours: +50 AP (up to your max)
-- Move ships between sectors using AP
-- Control sectors by:
-  1. Moving a Command Ship there
-  2. Declaring control (25 AP)
-  3. Placing a Garrison Ship to hold it
-- Win by eliminating all enemy ships
+- Every 8 hours: +50 AP refresh
+- Control sectors by moving Command Ships
+- Win by eliminating opponent
 
-## Development
+## Project Structure
 
-### Project Structure
 ```
 interstellar-command/
 ├── backend/          # Rust game server
-│   ├── src/
-│   │   ├── main.rs      # Server entry point
-│   │   ├── game.rs      # Game logic
-│   │   └── websocket.rs # Real-time communication
-│   └── Cargo.toml
-├── frontend/         # Web interface
-│   ├── index.html       # Main page
-│   ├── style.css        # Terminal styling
-│   ├── game.js          # Game client
-│   └── map.js           # Sector visualization
-└── data/            # Game state storage
-    └── game_state.json
+│   └── src/         # Server source code
+├── frontend/        # Web interface
+│   ├── index.html   # Game UI
+│   ├── game.js      # Client logic
+│   └── map.js       # Sector visualization
+├── data/           # Game saves
+├── run.sh          # Linux/Mac launcher
+└── run.bat         # Windows launcher
 ```
 
-### Building for Production
+## Configuration
 
+### Change Port
+Edit `backend/src/main.rs` line 60:
+```rust
+let addr = SocketAddr::from(([0, 0, 0, 0], 8080));  // Change 8080
+```
+
+### Modify AP Refresh Rate
+Edit `backend/src/websocket.rs` line 250:
+```rust
+// Change from 8 hours to 1 hour for testing
+let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1 * 60 * 60));
+```
+
+## Troubleshooting
+
+### "Build failed! Make sure Rust is installed"
 ```bash
-cd backend
-cargo build --release
-./target/release/interstellar-backend
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
 ```
 
-## Tips
+### "Connection refused"
+- Check firewall: `sudo ufw allow 8080`
+- Verify server is running: `ps aux | grep interstellar`
 
-- Click sectors on the map to auto-fill sector IDs in commands
-- Use quick command buttons on mobile for faster input
-- Monitor your AP usage - running out leaves you vulnerable
-- Control strategic sectors between planets for tactical advantage
+### Can't access from phone
+- Ensure devices on same network
+- Check server IP is correct
+- Try disabling firewall temporarily
+
+## Development
+
+### Making Changes
+1. Edit code in `backend/src/` or `frontend/`
+2. Rebuild: `cd backend && cargo build --release`
+3. Restart server: `./run.sh`
+
+### Reset Game State
+```bash
+rm data/game_state.json
+./run.sh  # Creates fresh game
+```
